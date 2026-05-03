@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Roj — Hînbûna Kurmancî</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --cream:#FFF8EC;--card:#FFFBF3;--border:#E8D7B8;
+  --ink:#2B1810;--ink2:#6B4226;
+  --sun:#F4A460;--sun2:#D97634;
+  --grass:#7FAD5C;--grass2:#5A7A3E;
+  --sky:#5BA3D0;--sky2:#3B7BA8;
+  --rose:#E07070;--rose2:#B84040;
+  --gold:#FFD700;
+}
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+body{font-family:'Fredoka',system-ui,sans-serif;background:var(--cream);color:var(--ink);overscroll-behavior:none;min-height:100vh;}
+body.rtl{direction:rtl;}
+.ar{font-family:'Cairo',sans-serif;}
+.card{background:var(--card);border:2px solid var(--border);border-radius:20px;box-shadow:0 4px 14px rgba(43,24,16,.1);}
+.btn{border:none;cursor:pointer;font-family:inherit;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.18);transition:transform .08s,box-shadow .08s;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.18);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-sun{background:var(--sun);color:#fff;}
+.btn-grass{background:var(--grass);color:#fff;}
+.btn-sky{background:var(--sky);color:#fff;}
+.btn-rose{background:var(--rose);color:#fff;}
+.btn-white{background:#fff;color:var(--ink);}
+.btn-gold{background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;}
+.btn-nav{background:#fff;color:var(--ink);border:2px solid var(--border);box-shadow:0 3px 0 rgba(0,0,0,.12);padding:14px 24px;font-size:1.2rem;}
+.btn-nav:disabled{opacity:.3;}
+.pop{animation:pop .28s cubic-bezier(.18,.89,.32,1.28);}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+.float{animation:float 4s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.bar-track{background:#E8D7B8;border-radius:99px;overflow:hidden;}
+.bar-fill{background:var(--sun);border-radius:99px;transition:width .4s cubic-bezier(.18,.89,.32,1.28);}
+.letter-main{font-size:clamp(80px,20vw,120px);font-weight:700;line-height:1;color:var(--sun2);}
+.letter-lower{font-size:clamp(40px,10vw,60px);color:#bbb;font-weight:400;}
+.cf{position:fixed;pointer-events:none;top:-10px;z-index:9999;animation:fall 2.6s linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* Auth Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--card);border-radius:24px;padding:32px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+
+/* Lock overlay */
+.lock-overlay{position:absolute;inset:0;background:rgba(255,248,236,.92);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:10;}
+
+/* Premium badge */
+.badge-premium{background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;border-radius:8px;padding:2px 8px;font-size:.75rem;font-weight:700;}
+.badge-free{background:#E8F0FE;color:#3B7BA8;border-radius:8px;padding:2px 8px;font-size:.75rem;font-weight:700;}
+
+/* Leaderboard */
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;margin-bottom:8px;}
+.lb-rank{font-size:1.4rem;font-weight:700;min-width:32px;text-align:center;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="croot"></div>
+<div id="modal-root"></div>
+
+<script>
+/* ═══════════════════════════════════════
+   ROJ — CONFIG
+═══════════════════════════════════════ */
+const SUPABASE_URL = 'https://eblskcouxmdagxnngzzu.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVibHNrY291eG1kYWd4bm5nenp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MzMzMTIsImV4cCI6MjA5MzQwOTMxMn0.gVKR7vUnqgCDHtH1_3UNsMxXON7wArLFS4f7TTKX-VM';
+const STRIPE_PK = 'pk_test_51TT6BOPMruGxKA5FDjZAPZkW2H0VsYLrsFjOw6sIjEkSgptCrmGfLZA83sd1QoJ4lPbRYyHj7xKWfz15WzEXRZzA00QRcmHIAK';
+const PRICE_MONTHLY = 'price_1TT6LHPMruGxKA5FZb0NMbmU';
+const PRICE_YEARLY  = 'price_1TT6PQPMruGxKA5FakGBU9sQ';
+
+// Free limits
+const FREE_ABC  = 8;   // first 8 letters (vowels)
+const FREE_NUM  = 6;   // 0-5
+const FREE_UNITS = ['greet']; // only greetings free
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ═══════════════════════════════════════
+   I18N
+═══════════════════════════════════════ */
+const L={
+  en:{n:'English',d:'ltr',
+    pick:'Choose your language',name:'Your name?',ph:'Name',go:"Let's go!",
+    back:'Back',next:'Next',prev:'Prev',home:'Home',
+    letters:'Alphabet',numbers:'Numbers',vocab:'Words',review:'Review',reviewSub:'Test what you\'ve learned',
+    soundLike:'Sounds like',example:'Example',unit:'Unit',wordOf:'word',of:'of',
+    done:'Done!',settings:'Settings',about:'About',reset:'Reset',resetQ:'Delete all progress?',
+    hi:'Hi',quiz:'Quiz',qAbc:'Which Kurdish letter sounds like:',qNum:'Kurdish word for:',qVoc:'Kurdish word for:',
+    answer:'Answer in Kurdish:',qResult:'Your score',
+    login:'Log in',signup:'Sign up',logout:'Log out',email:'Email',password:'Password',
+    authSwitch:'Don\'t have an account?',authSwitch2:'Already have an account?',
+    premium:'Go Premium',premiumSub:'Unlock all content',
+    monthly:'Monthly',yearly:'Yearly',perMonth:'/month',perYear:'/year',
+    save:'Save 50%',locked:'Premium content',lockedSub:'Upgrade to access all letters, numbers and units.',
+    upgrade:'Upgrade now',leaderboard:'Leaderboard',lbEmpty:'No scores yet — be the first!',
+    perfect:'Perfect score! You\'re on the leaderboard 🏆',
+    manageSubscription:'Manage subscription',
+    aboutTxt:'Roj teaches Kurmanji — the most spoken Kurdish dialect. Start with the alphabet, then numbers, then words.'
+  },
+  ar:{n:'العربية',d:'rtl',
+    pick:'اختر لغتك',name:'ما اسمك؟',ph:'اسمك',go:'هيا نبدأ!',
+    back:'عودة',next:'التالي',prev:'السابق',home:'الرئيسية',
+    letters:'الأبجدية',numbers:'الأرقام',vocab:'الكلمات',review:'مراجعة',reviewSub:'اختبر ما تعلمته',
+    soundLike:'تُنطق',example:'مثال',unit:'وحدة',wordOf:'كلمة',of:'من',
+    done:'انتهى!',settings:'الإعدادات',about:'عن',reset:'إعادة تعيين',resetQ:'حذف كل التقدم؟',
+    hi:'أهلاً',quiz:'اختبار',qAbc:'أيّ حرف كردي ينطق مثل:',qNum:'الكلمة الكردية للرقم:',qVoc:'الكلمة الكردية لـ:',
+    answer:'الجواب بالكردي:',qResult:'نتيجتك',
+    login:'تسجيل الدخول',signup:'إنشاء حساب',logout:'تسجيل الخروج',email:'البريد الإلكتروني',password:'كلمة المرور',
+    authSwitch:'ما عندك حساب؟',authSwitch2:'عندك حساب؟',
+    premium:'اشترك الآن',premiumSub:'افتح كل المحتوى',
+    monthly:'شهري',yearly:'سنوي',perMonth:'/شهر',perYear:'/سنة',
+    save:'وفّر 50%',locked:'محتوى مدفوع',lockedSub:'اشترك للوصول لكل الحروف والأرقام والوحدات.',
+    upgrade:'اشترك الآن',leaderboard:'المتصدرون',lbEmpty:'لا توجد نتائج بعد — كن الأول!',
+    perfect:'نتيجة مثالية! أنت في المتصدرين 🏆',
+    manageSubscription:'إدارة الاشتراك',
+    aboutTxt:'روج يعلّم الكرمانجية — أكثر اللهجات الكردية انتشاراً. ابدأ بالأبجدية ثم الأرقام ثم الكلمات.'
+  },
+  de:{n:'Deutsch',d:'ltr',
+    pick:'Wähle deine Sprache',name:'Wie heißt du?',ph:'Dein Name',go:'Los!',
+    back:'Zurück',next:'Weiter',prev:'Zurück',home:'Startseite',
+    letters:'Alphabet',numbers:'Zahlen',vocab:'Wörter',review:'Wiederholung',reviewSub:'Teste dein Wissen',
+    soundLike:'Klingt wie',example:'Beispiel',unit:'Einheit',wordOf:'Wort',of:'von',
+    done:'Fertig!',settings:'Einstellungen',about:'Über',reset:'Zurücksetzen',resetQ:'Alle Fortschritte löschen?',
+    hi:'Hi',quiz:'Quiz',qAbc:'Welcher Buchstabe klingt wie:',qNum:'Kurdisch für:',qVoc:'Kurdisch für:',
+    answer:'Antwort auf Kurdisch:',qResult:'Dein Ergebnis',
+    login:'Anmelden',signup:'Registrieren',logout:'Abmelden',email:'E-Mail',password:'Passwort',
+    authSwitch:'Noch kein Konto?',authSwitch2:'Bereits registriert?',
+    premium:'Premium werden',premiumSub:'Alle Inhalte freischalten',
+    monthly:'Monatlich',yearly:'Jährlich',perMonth:'/Monat',perYear:'/Jahr',
+    save:'50% sparen',locked:'Premium-Inhalt',lockedSub:'Upgrade für alle Buchstaben, Zahlen und Einheiten.',
+    upgrade:'Jetzt upgraden',leaderboard:'Bestenliste',lbEmpty:'Noch keine Einträge — sei der Erste!',
+    perfect:'Perfekte Punktzahl! Du bist auf der Bestenliste 🏆',
+    manageSubscription:'Abonnement verwalten',
+    aboutTxt:'Roj unterrichtet Kurmancî — den meistgesprochenen kurdischen Dialekt.'
+  },
+  fr:{n:'Français',d:'ltr',
+    pick:'Choisis ta langue',name:'Ton prénom?',ph:'Prénom',go:"C'est parti!",
+    back:'Retour',next:'Suivant',prev:'Précédent',home:'Accueil',
+    letters:'Alphabet',numbers:'Nombres',vocab:'Mots',review:'Révision',reviewSub:'Teste tes connaissances',
+    soundLike:'Se prononce',example:'Exemple',unit:'Unité',wordOf:'mot',of:'sur',
+    done:'Terminé!',settings:'Paramètres',about:'À propos',reset:'Réinitialiser',resetQ:'Supprimer toute la progression?',
+    hi:'Salut',quiz:'Quiz',qAbc:'Quelle lettre kurde se prononce:',qNum:'Le mot kurde pour:',qVoc:'Le mot kurde pour:',
+    answer:'Réponse en kurde:',qResult:'Ton score',
+    login:'Se connecter',signup:"S'inscrire",logout:'Se déconnecter',email:'E-mail',password:'Mot de passe',
+    authSwitch:'Pas encore de compte?',authSwitch2:'Déjà un compte?',
+    premium:'Devenir Premium',premiumSub:'Débloquer tout le contenu',
+    monthly:'Mensuel',yearly:'Annuel',perMonth:'/mois',perYear:'/an',
+    save:'Économise 50%',locked:'Contenu Premium',lockedSub:'Abonne-toi pour accéder à toutes les lettres, chiffres et unités.',
+    upgrade:"S'abonner",leaderboard:'Classement',lbEmpty:'Aucun score — sois le premier!',
+    perfect:'Score parfait! Tu es dans le classement 🏆',
+    manageSubscription:"Gérer l'abonnement",
+    aboutTxt:"Roj enseigne le Kurmancî — le dialecte kurde le plus parlé."
+  }
+};
+function T(k){return L[S.lang]?.[k]??k;}
+function isAr(){return S.lang==='ar';}
+function dir(){return isAr()?'direction:rtl;font-family:Cairo,sans-serif;':'';}
+
+/* ═══════════════════════════════════════
+   DATA
+═══════════════════════════════════════ */
+const ABC=[
+  {l:'A',ph:{en:'AH',ar:'ا',de:'A',fr:'A'},ex:'av',exM:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'}},
+  {l:'E',ph:{en:'EH',ar:'ئە',de:'Ä',fr:'È'},ex:'ez',exM:{en:'I',ar:'أنا',de:'ich',fr:'je'}},
+  {l:'Ê',ph:{en:'AY',ar:'اي',de:'EH',fr:'É'},ex:'êş',exM:{en:'pain',ar:'ألم',de:'Schmerz',fr:'douleur'}},
+  {l:'I',ph:{en:'IH',ar:'ئ',de:'I',fr:'I'},ex:'kitêb',exM:{en:'book',ar:'كتاب',de:'Buch',fr:'livre'}},
+  {l:'Î',ph:{en:'EE',ar:'ي',de:'II',fr:'Î'},ex:'şîr',exM:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'}},
+  {l:'O',ph:{en:'OH',ar:'و',de:'O',fr:'O'},ex:'ode',exM:{en:'room',ar:'غرفة',de:'Zimmer',fr:'pièce'}},
+  {l:'U',ph:{en:'UH',ar:'ئو',de:'U',fr:'OU'},ex:'gulan',exM:{en:'flowers',ar:'ورود',de:'Blumen',fr:'fleurs'}},
+  {l:'Û',ph:{en:'OO',ar:'و (طويل)',de:'UU',fr:'OU long'},ex:'dûr',exM:{en:'far',ar:'بعيد',de:'weit',fr:'loin'}},
+  {l:'B',ph:{en:'B',ar:'ب',de:'B',fr:'B'},ex:'bav',exM:{en:'father',ar:'أب',de:'Vater',fr:'père'}},
+  {l:'C',ph:{en:'J (joy)',ar:'ج',de:'DSCH',fr:'DJ'},ex:'cêjin',exM:{en:'party',ar:'عيد',de:'Fest',fr:'fête'}},
+  {l:'D',ph:{en:'D',ar:'د',de:'D',fr:'D'},ex:'dê',exM:{en:'mother',ar:'أم',de:'Mutter',fr:'mère'}},
+  {l:'F',ph:{en:'F',ar:'ف',de:'F',fr:'F'},ex:'fil',exM:{en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant'}},
+  {l:'G',ph:{en:'G',ar:'گ',de:'G',fr:'G'},ex:'gul',exM:{en:'flower',ar:'وردة',de:'Blume',fr:'fleur'}},
+  {l:'H',ph:{en:'H',ar:'ه',de:'H',fr:'H'},ex:'heval',exM:{en:'friend',ar:'صديق',de:'Freund',fr:'ami'}},
+  {l:'J',ph:{en:'ZH (vision)',ar:'ژ',de:'J (fr.)',fr:'J'},ex:'jin',exM:{en:'woman',ar:'امرأة',de:'Frau',fr:'femme'}},
+  {l:'K',ph:{en:'K',ar:'ك',de:'K',fr:'K'},ex:'kûçik',exM:{en:'dog',ar:'كلب',de:'Hund',fr:'chien'}},
+  {l:'L',ph:{en:'L',ar:'ل',de:'L',fr:'L'},ex:'lîmon',exM:{en:'lemon',ar:'ليمون',de:'Zitrone',fr:'citron'}},
+  {l:'M',ph:{en:'M',ar:'م',de:'M',fr:'M'},ex:'mal',exM:{en:'house',ar:'بيت',de:'Haus',fr:'maison'}},
+  {l:'N',ph:{en:'N',ar:'ن',de:'N',fr:'N'},ex:'nan',exM:{en:'bread',ar:'خبز',de:'Brot',fr:'pain'}},
+  {l:'P',ph:{en:'P',ar:'پ',de:'P',fr:'P'},ex:'pîvaz',exM:{en:'onion',ar:'بصل',de:'Zwiebel',fr:'oignon'}},
+  {l:'Q',ph:{en:'K (throat)',ar:'ق',de:'CH (Bach)',fr:'Q'},ex:'qelem',exM:{en:'pen',ar:'قلم',de:'Stift',fr:'stylo'}},
+  {l:'R',ph:{en:'R (rolled)',ar:'ر',de:'R',fr:'R'},ex:'roj',exM:{en:'sun',ar:'شمس',de:'Sonne',fr:'soleil'}},
+  {l:'S',ph:{en:'S',ar:'س',de:'S',fr:'S'},ex:'sêv',exM:{en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme'}},
+  {l:'T',ph:{en:'T',ar:'ت',de:'T',fr:'T'},ex:'tav',exM:{en:'sunshine',ar:'أشعة',de:'Sonnenschein',fr:'soleil'}},
+  {l:'V',ph:{en:'V',ar:'ڤ',de:'W',fr:'V'},ex:'av',exM:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'}},
+  {l:'W',ph:{en:'W',ar:'و',de:'W',fr:'W'},ex:'welat',exM:{en:'homeland',ar:'وطن',de:'Heimat',fr:'patrie'}},
+  {l:'X',ph:{en:'KH (Bach)',ar:'خ',de:'CH (Bach)',fr:'J (fr.)'},ex:'xanî',exM:{en:'home',ar:'بيت',de:'Haus',fr:'maison'}},
+  {l:'Y',ph:{en:'Y (yes)',ar:'ي',de:'J (ja)',fr:'Y'},ex:'yek',exM:{en:'one',ar:'واحد',de:'eins',fr:'un'}},
+  {l:'Z',ph:{en:'Z',ar:'ز',de:'S (Rose)',fr:'Z'},ex:'zer',exM:{en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune'}},
+  {l:'Ç',ph:{en:'CH (church)',ar:'چ',de:'TSCH',fr:'TCH'},ex:'çav',exM:{en:'eye',ar:'عين',de:'Auge',fr:'œil'}},
+  {l:'Ş',ph:{en:'SH (shoe)',ar:'ش',de:'SCH',fr:'CH'},ex:'şîr',exM:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'}}
+];
+
+const NUMS=[
+  {n:0,ku:'sifir',ph:{en:'SIF-ir',ar:'سيفر',de:'SIF-ir',fr:'SIF-ir'}},
+  {n:1,ku:'yek',ph:{en:'YEHK',ar:'يَك',de:'JEK',fr:'YEK'}},
+  {n:2,ku:'du',ph:{en:'DOO',ar:'دو',de:'DUU',fr:'DOU'}},
+  {n:3,ku:'sê',ph:{en:'SAY',ar:'ساي',de:'SÄH',fr:'SÉ'}},
+  {n:4,ku:'çar',ph:{en:'CHAR',ar:'چار',de:'TSCHAR',fr:'TCHAR'}},
+  {n:5,ku:'pênc',ph:{en:'PENCH',ar:'پێنج',de:'PÄNSCH',fr:'PÉNJ'}},
+  {n:6,ku:'şeş',ph:{en:'SHESH',ar:'شيش',de:'SCHESCH',fr:'CHÈCH'}},
+  {n:7,ku:'heft',ph:{en:'HEFT',ar:'هَفت',de:'HEFT',fr:'HÈFT'}},
+  {n:8,ku:'heşt',ph:{en:'HESHT',ar:'هَشت',de:'HESCHT',fr:'HÈCHT'}},
+  {n:9,ku:'neh',ph:{en:'NEH',ar:'نَه',de:'NEH',fr:'NÉ'}},
+  {n:10,ku:'deh',ph:{en:'DEH',ar:'دَه',de:'DEH',fr:'DÈH'}},
+  {n:11,ku:'yazda',ph:{en:'YAZ-da',ar:'يازدا',de:'JAZ-da',fr:'YAZ-da'}},
+  {n:12,ku:'dozde',ph:{en:'DOZ-de',ar:'دۆزده',de:'DOZ-de',fr:'DOZ-de'}},
+  {n:13,ku:'sîzde',ph:{en:'SEEZ-de',ar:'سيزده',de:'SIIZ-de',fr:'SIZ-de'}},
+  {n:14,ku:'çardeh',ph:{en:'CHAR-deh',ar:'چاردَه',de:'TSCHAR-deh',fr:'TCHAR-deh'}},
+  {n:15,ku:'pazdeh',ph:{en:'PAZ-deh',ar:'پازدَه',de:'PAZ-deh',fr:'PAZ-deh'}},
+  {n:16,ku:'şazde',ph:{en:'SHAZ-de',ar:'شازده',de:'SCHAZ-de',fr:'CHAZ-de'}},
+  {n:17,ku:'hefdeh',ph:{en:'HEF-deh',ar:'هَفدَه',de:'HEF-deh',fr:'HEF-deh'}},
+  {n:18,ku:'hejde',ph:{en:'HEJ-de',ar:'هَجده',de:'HEJ-de',fr:'HEJ-de'}},
+  {n:19,ku:'nozde',ph:{en:'NOZ-de',ar:'نۆزده',de:'NOZ-de',fr:'NOZ-de'}},
+  {n:20,ku:'bîst',ph:{en:'BEEST',ar:'بيست',de:'BIIST',fr:'BIST'}},
+  {n:30,ku:'sî',ph:{en:'SEE',ar:'سي',de:'SII',fr:'SI'}},
+  {n:40,ku:'çil',ph:{en:'CHIL',ar:'چل',de:'TSCHIL',fr:'TCHIL'}},
+  {n:50,ku:'pêncî',ph:{en:'PENCH-ee',ar:'پێنجي',de:'PÄNSCH-ii',fr:'PÉNJ-i'}},
+  {n:60,ku:'şêst',ph:{en:'SHAYST',ar:'شێست',de:'SCHÄST',fr:'CHÈST'}},
+  {n:70,ku:'heftê',ph:{en:'HEF-tay',ar:'هَفتێ',de:'HEF-tä',fr:'HEF-té'}},
+  {n:80,ku:'heştê',ph:{en:'HESH-tay',ar:'هَشتێ',de:'HESCHT-ä',fr:'HÈCHT-é'}},
+  {n:90,ku:'not',ph:{en:'NOHT',ar:'نۆت',de:'NOT',fr:'NOT'}},
+  {n:100,ku:'sed',ph:{en:'SED',ar:'سَد',de:'SED',fr:'SED'}}
+];
+
+const UNITS=[
+  {id:'greet',icon:'👋',name:{en:'Greetings',ar:'التحيات',de:'Begrüßungen',fr:'Salutations'},free:true,words:[
+    {ku:'Silav',em:'👋',tr:{en:'Hello',ar:'مرحبا',de:'Hallo',fr:'Salut'},ph:{en:'si-LAV',ar:'سي‑لاڤ',de:'si-LAAW',fr:'si-LAV'}},
+    {ku:'Roj baş',em:'☀️',tr:{en:'Good day',ar:'يوم جيد',de:'Guten Tag',fr:'Bonne journée'},ph:{en:'roj BASH',ar:'روج باش',de:'roj BASCH',fr:'roj BACH'}},
+    {ku:'Spas',em:'🙏',tr:{en:'Thanks',ar:'شكراً',de:'Danke',fr:'Merci'},ph:{en:'SPAS',ar:'سپاس',de:'SPAS',fr:'SPAS'}},
+    {ku:'Erê',em:'✅',tr:{en:'Yes',ar:'نعم',de:'Ja',fr:'Oui'},ph:{en:'eh-RAY',ar:'ئَرێ',de:'eh-RE',fr:'eh-RÉ'}},
+    {ku:'Na',em:'❌',tr:{en:'No',ar:'لا',de:'Nein',fr:'Non'},ph:{en:'NA',ar:'نا',de:'NA',fr:'NA'}},
+    {ku:'Baş im',em:'😊',tr:{en:"I'm fine",ar:'أنا بخير',de:"Mir geht's gut",fr:'Je vais bien'},ph:{en:'BASH im',ar:'باش ئيم',de:'BASCH im',fr:'BACH im'}},
+    {ku:'Çawanî?',em:'🤔',tr:{en:'How are you?',ar:'كيف حالك؟',de:"Wie geht's?",fr:'Comment ça va?'},ph:{en:'cha-WA-ni',ar:'چاواني',de:'tscha-WA-ni',fr:'tcha-WA-ni'}},
+    {ku:'Bi xêr hatî',em:'🌹',tr:{en:'Welcome',ar:'أهلاً وسهلاً',de:'Willkommen',fr:'Bienvenue'},ph:{en:'bi-KHAYR ha-ti',ar:'بي‑خير هاتي',de:'bi-CHAYR ha-ti',fr:'bi-KÈYR ha-ti'}},
+    {ku:'Bi xatirê te',em:'🚶',tr:{en:'Goodbye',ar:'مع السلامة',de:'Auf Wiedersehen',fr:'Au revoir'},ph:{en:'bi-kha-ti-RAY te',ar:'بي‑خاتيرێ ته',de:'bi-cha-ti-RE te',fr:'bi-kha-ti-RÉ te'}}
+  ]},
+  {id:'family',icon:'👨‍👩‍👧',name:{en:'Family',ar:'العائلة',de:'Familie',fr:'Famille'},free:false,words:[
+    {ku:'dê',em:'👩',tr:{en:'mother',ar:'أم',de:'Mutter',fr:'mère'},ph:{en:'DAY',ar:'داي',de:'DÄ',fr:'DÉ'}},
+    {ku:'bav',em:'👨',tr:{en:'father',ar:'أب',de:'Vater',fr:'père'},ph:{en:'BAV',ar:'باڤ',de:'BAW',fr:'BAV'}},
+    {ku:'bira',em:'👦',tr:{en:'brother',ar:'أخ',de:'Bruder',fr:'frère'},ph:{en:'BI-ra',ar:'بيرا',de:'BI-ra',fr:'BI-ra'}},
+    {ku:'xwişk',em:'👧',tr:{en:'sister',ar:'أخت',de:'Schwester',fr:'sœur'},ph:{en:'KHWISHK',ar:'خويشك',de:'CHWISCHK',fr:'KHWICHK'}},
+    {ku:'kal',em:'👴',tr:{en:'grandfather',ar:'جد',de:'Opa',fr:'grand-père'},ph:{en:'KAL',ar:'كال',de:'KAL',fr:'KAL'}},
+    {ku:'dapîr',em:'👵',tr:{en:'grandmother',ar:'جدة',de:'Oma',fr:'grand-mère'},ph:{en:'da-PEER',ar:'داپير',de:'da-PIIR',fr:'da-PIR'}},
+    {ku:'zarok',em:'🧒',tr:{en:'child',ar:'طفل',de:'Kind',fr:'enfant'},ph:{en:'ZA-rok',ar:'زارۆك',de:'ZA-rok',fr:'ZA-rok'}},
+    {ku:'malbat',em:'👨‍👩‍👧‍👦',tr:{en:'family',ar:'عائلة',de:'Familie',fr:'famille'},ph:{en:'MAL-bat',ar:'مالبات',de:'MAL-bat',fr:'MAL-bat'}}
+  ]},
+  {id:'house',icon:'🏠',name:{en:'House',ar:'البيت',de:'Haus',fr:'Maison'},free:false,words:[
+    {ku:'mal',em:'🏠',tr:{en:'house',ar:'بيت',de:'Haus',fr:'maison'},ph:{en:'MAL',ar:'مال',de:'MAL',fr:'MAL'}},
+    {ku:'derî',em:'🚪',tr:{en:'door',ar:'باب',de:'Tür',fr:'porte'},ph:{en:'deh-REE',ar:'دەري',de:'deh-RII',fr:'deh-RI'}},
+    {ku:'pencere',em:'🪟',tr:{en:'window',ar:'نافذة',de:'Fenster',fr:'fenêtre'},ph:{en:'PEN-je-re',ar:'پەنجەرە',de:'PEN-je-re',fr:'PEN-je-re'}},
+    {ku:'mase',em:'🍽️',tr:{en:'table',ar:'طاولة',de:'Tisch',fr:'table'},ph:{en:'MA-se',ar:'ماسە',de:'MA-se',fr:'MA-se'}},
+    {ku:'kursî',em:'🪑',tr:{en:'chair',ar:'كرسي',de:'Stuhl',fr:'chaise'},ph:{en:'KOOR-see',ar:'كورسي',de:'KUUR-sii',fr:'KOUR-si'}},
+    {ku:'text',em:'🛏️',tr:{en:'bed',ar:'سرير',de:'Bett',fr:'lit'},ph:{en:'TEKHT',ar:'تەخت',de:'TEKHT',fr:'TÈKHT'}},
+    {ku:'av',em:'💧',tr:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'},ph:{en:'AV',ar:'اڤ',de:'AW',fr:'AV'}},
+    {ku:'nan',em:'🍞',tr:{en:'bread',ar:'خبز',de:'Brot',fr:'pain'},ph:{en:'NAN',ar:'نان',de:'NAN',fr:'NAN'}}
+  ]},
+  {id:'food',icon:'🍽️',name:{en:'Food',ar:'الطعام',de:'Essen',fr:'Nourriture'},free:false,words:[
+    {ku:'şîr',em:'🥛',tr:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'},ph:{en:'SHEER',ar:'شير',de:'SCHIIR',fr:'CHIR'}},
+    {ku:'sêv',em:'🍎',tr:{en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme'},ph:{en:'SAYV',ar:'سيڤ',de:'SÄW',fr:'SÉV'}},
+    {ku:'hêk',em:'🥚',tr:{en:'egg',ar:'بيضة',de:'Ei',fr:'œuf'},ph:{en:'HAYK',ar:'هيك',de:'HÄK',fr:'HÈK'}},
+    {ku:'penîr',em:'🧀',tr:{en:'cheese',ar:'جبنة',de:'Käse',fr:'fromage'},ph:{en:'peh-NEER',ar:'پەنير',de:'peh-NIIR',fr:'peh-NIR'}},
+    {ku:'goşt',em:'🥩',tr:{en:'meat',ar:'لحم',de:'Fleisch',fr:'viande'},ph:{en:'GOSHT',ar:'گۆشت',de:'GOSCHT',fr:'GOCHT'}},
+    {ku:'çay',em:'🍵',tr:{en:'tea',ar:'شاي',de:'Tee',fr:'thé'},ph:{en:'CHAY',ar:'چاي',de:'TSCHAY',fr:'TCHAY'}},
+    {ku:'mast',em:'🥣',tr:{en:'yogurt',ar:'لبن',de:'Joghurt',fr:'yaourt'},ph:{en:'MAST',ar:'ماست',de:'MAST',fr:'MAST'}},
+    {ku:'birinc',em:'🍚',tr:{en:'rice',ar:'رز',de:'Reis',fr:'riz'},ph:{en:'bi-RINJ',ar:'بيرينج',de:'bi-RINJ',fr:'bi-RINJ'}}
+  ]},
+  {id:'animals',icon:'🐾',name:{en:'Animals',ar:'الحيوانات',de:'Tiere',fr:'Animaux'},free:false,words:[
+    {ku:'kûçik',em:'🐕',tr:{en:'dog',ar:'كلب',de:'Hund',fr:'chien'},ph:{en:'KOO-chik',ar:'كوچك',de:'KUU-tschik',fr:'KOU-tchik'}},
+    {ku:'pisîk',em:'🐈',tr:{en:'cat',ar:'قطة',de:'Katze',fr:'chat'},ph:{en:'pi-SEEK',ar:'پيسيك',de:'pi-SIIK',fr:'pi-SIK'}},
+    {ku:'hesp',em:'🐎',tr:{en:'horse',ar:'حصان',de:'Pferd',fr:'cheval'},ph:{en:'HESP',ar:'هەسپ',de:'HESP',fr:'HESP'}},
+    {ku:'çûk',em:'🐦',tr:{en:'bird',ar:'طير',de:'Vogel',fr:'oiseau'},ph:{en:'CHOOK',ar:'چووك',de:'TSCHUUK',fr:'TCHOUK'}},
+    {ku:'masî',em:'🐟',tr:{en:'fish',ar:'سمكة',de:'Fisch',fr:'poisson'},ph:{en:'MA-see',ar:'ماسي',de:'MA-sii',fr:'MA-si'}},
+    {ku:'ga',em:'🐄',tr:{en:'cow',ar:'بقرة',de:'Kuh',fr:'vache'},ph:{en:'GA',ar:'گا',de:'GA',fr:'GA'}},
+    {ku:'fil',em:'🐘',tr:{en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant'},ph:{en:'FIL',ar:'فيل',de:'FIL',fr:'FIL'}},
+    {ku:'şêr',em:'🦁',tr:{en:'lion',ar:'أسد',de:'Löwe',fr:'lion'},ph:{en:'SHAYR',ar:'شير',de:'SCHÄYR',fr:'CHÈR'}}
+  ]},
+  {id:'colors',icon:'🎨',name:{en:'Colors',ar:'الألوان',de:'Farben',fr:'Couleurs'},free:false,words:[
+    {ku:'sor',em:'🔴',tr:{en:'red',ar:'أحمر',de:'rot',fr:'rouge'},ph:{en:'SOR',ar:'سۆر',de:'SOR',fr:'SOR'}},
+    {ku:'şîn',em:'🔵',tr:{en:'blue',ar:'أزرق',de:'blau',fr:'bleu'},ph:{en:'SHEEN',ar:'شين',de:'SCHIIN',fr:'CHIN'}},
+    {ku:'zer',em:'🟡',tr:{en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune'},ph:{en:'ZER',ar:'زەر',de:'SER',fr:'ZER'}},
+    {ku:'kesk',em:'🟢',tr:{en:'green',ar:'أخضر',de:'grün',fr:'vert'},ph:{en:'KESK',ar:'كەسك',de:'KESK',fr:'KESK'}},
+    {ku:'reş',em:'⚫',tr:{en:'black',ar:'أسود',de:'schwarz',fr:'noir'},ph:{en:'RESH',ar:'ريش',de:'RESCH',fr:'RÈCH'}},
+    {ku:'spî',em:'⚪',tr:{en:'white',ar:'أبيض',de:'weiß',fr:'blanc'},ph:{en:'SPEE',ar:'سپي',de:'SPII',fr:'SPI'}},
+    {ku:'mor',em:'🟣',tr:{en:'purple',ar:'بنفسجي',de:'lila',fr:'violet'},ph:{en:'MOR',ar:'مۆر',de:'MOR',fr:'MOR'}},
+    {ku:'porteqalî',em:'🟠',tr:{en:'orange',ar:'برتقالي',de:'orange',fr:'orange'},ph:{en:'por-te-QA-li',ar:'پۆرتەقالي',de:'por-te-QA-li',fr:'por-te-QA-li'}}
+  ]},
+  {id:'body',icon:'🫀',name:{en:'Body',ar:'الجسم',de:'Körper',fr:'Corps'},free:false,words:[
+    {ku:'ser',em:'🗣️',tr:{en:'head',ar:'رأس',de:'Kopf',fr:'tête'},ph:{en:'SER',ar:'سەر',de:'SER',fr:'SER'}},
+    {ku:'çav',em:'👁️',tr:{en:'eye',ar:'عين',de:'Auge',fr:'œil'},ph:{en:'CHAV',ar:'چاڤ',de:'TSCHAW',fr:'TCHAV'}},
+    {ku:'guh',em:'👂',tr:{en:'ear',ar:'أذن',de:'Ohr',fr:'oreille'},ph:{en:'GUH',ar:'گوه',de:'GUH',fr:'GU'}},
+    {ku:'dev',em:'👄',tr:{en:'mouth',ar:'فم',de:'Mund',fr:'bouche'},ph:{en:'DEV',ar:'دەڤ',de:'DEW',fr:'DEV'}},
+    {ku:'poz',em:'👃',tr:{en:'nose',ar:'أنف',de:'Nase',fr:'nez'},ph:{en:'POZ',ar:'پۆز',de:'POZ',fr:'POZ'}},
+    {ku:'dest',em:'✋',tr:{en:'hand',ar:'يد',de:'Hand',fr:'main'},ph:{en:'DEST',ar:'دەست',de:'DEST',fr:'DEST'}},
+    {ku:'pê',em:'🦶',tr:{en:'foot',ar:'قدم',de:'Fuß',fr:'pied'},ph:{en:'PAY',ar:'پێ',de:'PÄ',fr:'PÉ'}},
+    {ku:'dil',em:'❤️',tr:{en:'heart',ar:'قلب',de:'Herz',fr:'cœur'},ph:{en:'DIL',ar:'دل',de:'DIL',fr:'DIL'}}
+  ]},
+  {id:'weather',icon:'🌤️',name:{en:'Weather',ar:'الطقس',de:'Wetter',fr:'Météo'},free:false,words:[
+    {ku:'roj',em:'☀️',tr:{en:'sun',ar:'شمس',de:'Sonne',fr:'soleil'},ph:{en:'ROJ',ar:'رۆژ',de:'ROJ',fr:'ROJ'}},
+    {ku:'baran',em:'🌧️',tr:{en:'rain',ar:'مطر',de:'Regen',fr:'pluie'},ph:{en:'ba-RAN',ar:'باران',de:'ba-RAN',fr:'ba-RAN'}},
+    {ku:'berf',em:'❄️',tr:{en:'snow',ar:'ثلج',de:'Schnee',fr:'neige'},ph:{en:'BERF',ar:'بەرف',de:'BERF',fr:'BERF'}},
+    {ku:'ba',em:'🌬️',tr:{en:'wind',ar:'ريح',de:'Wind',fr:'vent'},ph:{en:'BA',ar:'با',de:'BA',fr:'BA'}},
+    {ku:'sibê',em:'🌅',tr:{en:'morning',ar:'صباح',de:'Morgen',fr:'matin'},ph:{en:'si-BAY',ar:'سيبێ',de:'si-BÄ',fr:'si-BÉ'}},
+    {ku:'êvar',em:'🌆',tr:{en:'evening',ar:'مساء',de:'Abend',fr:'soir'},ph:{en:'AY-var',ar:'ێڤار',de:'Ä-war',fr:'É-var'}},
+    {ku:'şev',em:'🌙',tr:{en:'night',ar:'ليل',de:'Nacht',fr:'nuit'},ph:{en:'SHEV',ar:'شەڤ',de:'SCHEW',fr:'CHEV'}},
+    {ku:'hewa',em:'🌤️',tr:{en:'weather',ar:'طقس',de:'Wetter',fr:'météo'},ph:{en:'HE-wa',ar:'هەوا',de:'HE-wa',fr:'HE-wa'}}
+  ]}
+];
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+const defState={
+  step:'lang',lang:'en',name:'',
+  abc:0,num:0,vocUnit:null,vocWord:0,
+  prog:{abc:0,num:0,voc:{}},
+  quiz:{type:null,unitId:null,qs:[],cur:0,score:0},
+  user:null,isPremium:false,_v3:true
+};
+
+const _raw=localStorage.getItem('roj3');
+let S=_raw?JSON.parse(_raw):{...defState};
+if(!S._v3){S={...defState,lang:S.lang||'en'};}
+
+function save(){localStorage.setItem('roj3',JSON.stringify(S));}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function $(id){return document.getElementById(id);}
+function sh(html){$('app').innerHTML=html;}
+function confetti(n=40){
+  const r=$('croot');
+  ['#F4A460','#D97634','#7FAD5C','#5BA3D0','#FFD700'].forEach((c,ci)=>{
+    for(let i=ci;i<n;i+=5){
+      const e=document.createElement('div');
+      e.className='cf';
+      e.style.cssText=`left:${Math.random()*100}vw;background:${c};width:10px;height:10px;border-radius:2px;animation-delay:${Math.random()*.8}s;`;
+      r.appendChild(e);setTimeout(()=>e.remove(),3000);
+    }
+  });
+}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5);}
+function canAccess(type,id=null){
+  if(S.isPremium)return true;
+  if(type==='abc')return S.abc<FREE_ABC;
+  if(type==='num')return S.num<FREE_NUM;
+  if(type==='voc')return FREE_UNITS.includes(id);
+  if(type==='review')return false;
+  return false;
+}
+
+/* ═══════════════════════════════════════
+   AUTH
+═══════════════════════════════════════ */
+async function initAuth(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(session?.user){
+    S.user=session.user;
+    await checkPremium(session.user.id);
+    save();
+  }
+  sb.auth.onAuthStateChange(async(_,sess)=>{
+    if(sess?.user){
+      S.user=sess.user;
+      await checkPremium(sess.user.id);
+    } else {
+      S.user=null;S.isPremium=false;
+    }
+    save();render();
+  });
+}
+
+async function checkPremium(userId){
+  const{data}=await sb.from('subscriptions').select('status,current_period_end').eq('user_id',userId).single();
+  if(data&&data.status==='active'){
+    const exp=new Date(data.current_period_end);
+    S.isPremium=exp>new Date();
+  } else {
+    S.isPremium=false;
+  }
+}
+
+function showAuth(mode='login'){
+  const ar=isAr();
+  $('modal-root').innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal pop" style="${dir()}">
+        <div style="font-size:2rem;text-align:center;margin-bottom:4px;">☀️</div>
+        <h2 style="text-align:center;font-size:1.4rem;margin-bottom:20px;">${mode==='login'?T('login'):T('signup')}</h2>
+        <div id="auth-err" style="color:var(--rose);font-size:.9rem;margin-bottom:8px;text-align:center;display:none;"></div>
+        <label style="font-size:.85rem;font-weight:700;color:var(--ink2);">${T('email')}</label>
+        <input id="ae" type="email" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;margin:6px 0 14px;">
+        <label style="font-size:.85rem;font-weight:700;color:var(--ink2);">${T('password')}</label>
+        <input id="ap" type="password" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;margin:6px 0 20px;">
+        <button onclick="doAuth('${mode}')" class="btn btn-sun" style="width:100%;padding:14px;font-size:1.05rem;border-radius:14px;margin-bottom:12px;">
+          ${mode==='login'?T('login'):T('signup')}
+        </button>
+        <p style="text-align:center;font-size:.9rem;color:var(--ink2);">
+          ${mode==='login'?T('authSwitch'):T('authSwitch2')}
+          <button onclick="showAuth('${mode==='login'?'signup':'login'}')" style="background:none;border:none;color:var(--sky);font-weight:700;cursor:pointer;font-family:inherit;">
+            ${mode==='login'?T('signup'):T('login')}
+          </button>
+        </p>
+      </div>
+    </div>`;
+}
+
+async function doAuth(mode){
+  const email=$('ae').value.trim();
+  const pass=$('ap').value;
+  const errEl=$('auth-err');
+  errEl.style.display='none';
+  let res;
+  if(mode==='signup'){
+    res=await sb.auth.signUp({email,password:pass,options:{data:{name:S.name}}});
+  } else {
+    res=await sb.auth.signInWithPassword({email,password:pass});
+  }
+  if(res.error){
+    errEl.textContent=res.error.message;
+    errEl.style.display='block';
+    return;
+  }
+  if(mode==='signup'){
+    // Create profile
+    await sb.from('profiles').upsert({id:res.data.user.id,name:S.name,lang:S.lang},{onConflict:'id'});
+  }
+  closeModal();
+  render();
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  S.user=null;S.isPremium=false;save();render();
+}
+
+function closeModal(){$('modal-root').innerHTML='';}
+window.closeModal=closeModal;
+window.showAuth=showAuth;
+window.doAuth=doAuth;
+window.doLogout=doLogout;
+
+/* ═══════════════════════════════════════
+   PAYMENT
+═══════════════════════════════════════ */
+function showUpgrade(){
+  const ar=isAr();
+  $('modal-root').innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal pop" style="${dir()}">
+        <div style="font-size:2.5rem;text-align:center;margin-bottom:8px;">🏆</div>
+        <h2 style="text-align:center;font-size:1.4rem;margin-bottom:6px;">${T('premium')}</h2>
+        <p style="text-align:center;color:var(--ink2);margin-bottom:24px;">${T('premiumSub')}</p>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          <!-- YEARLY (highlighted) -->
+          <div style="border:3px solid var(--gold);border-radius:18px;padding:18px;position:relative;">
+            <div style="position:absolute;top:-12px;${ar?'right':'left'}:50%;transform:translateX(${ar?'50%':'-50%'});background:var(--gold);color:#fff;border-radius:20px;padding:2px 14px;font-size:.8rem;font-weight:700;">${T('save')}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div><div style="font-weight:700;font-size:1.1rem;">${T('yearly')}</div>
+                <div style="color:var(--ink2);font-size:.85rem;">€2.50${T('perMonth')}</div></div>
+              <div style="text-align:${ar?'left':'right'};">
+                <div style="font-size:1.6rem;font-weight:700;color:var(--sun2);">€29.99</div>
+                <div style="color:var(--ink2);font-size:.8rem;">${T('perYear')}</div></div></div>
+            <button onclick="subscribe('${PRICE_YEARLY}')" class="btn btn-gold" style="width:100%;padding:12px;border-radius:12px;margin-top:12px;font-size:1rem;">${T('upgrade')}</button>
+          </div>
+
+          <!-- MONTHLY -->
+          <div style="border:2px solid var(--border);border-radius:18px;padding:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div><div style="font-weight:700;font-size:1.1rem;">${T('monthly')}</div></div>
+              <div style="text-align:${ar?'left':'right'};">
+                <div style="font-size:1.6rem;font-weight:700;">€4.99</div>
+                <div style="color:var(--ink2);font-size:.8rem;">${T('perMonth')}</div></div></div>
+            <button onclick="subscribe('${PRICE_MONTHLY}')" class="btn btn-sun" style="width:100%;padding:12px;border-radius:12px;margin-top:12px;font-size:1rem;">${T('upgrade')}</button>
+          </div>
+        </div>
+        <button onclick="closeModal()" style="background:none;border:none;color:var(--ink2);font-size:.9rem;cursor:pointer;width:100%;text-align:center;font-family:inherit;">${T('back')}</button>
+      </div>
+    </div>`;
+}
+
+async function subscribe(priceId){
+  if(!S.user){closeModal();showAuth('signup');return;}
+  const btn=event.target;
+  btn.textContent='...';btn.disabled=true;
+  try{
+    const res=await fetch('/api/create-checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({priceId,userId:S.user.id,userEmail:S.user.email})
+    });
+    const{url}=await res.json();
+    window.location.href=url;
+  }catch(e){
+    btn.textContent=T('upgrade');btn.disabled=false;
+    alert('Error: '+e.message);
+  }
+}
+
+window.showUpgrade=showUpgrade;
+window.subscribe=subscribe;
+
+/* ═══════════════════════════════════════
+   LEADERBOARD
+═══════════════════════════════════════ */
+async function updateLeaderboard(score,total){
+  if(!S.user||score<total)return;
+  await sb.from('leaderboard').upsert({
+    user_id:S.user.id,
+    name:S.name,
+    perfect_quizzes:(await getMyPerfects())+1,
+    updated_at:new Date().toISOString()
+  },{onConflict:'user_id'});
+}
+
+async function getMyPerfects(){
+  const{data}=await sb.from('leaderboard').select('perfect_quizzes').eq('user_id',S.user.id).single();
+  return data?.perfect_quizzes||0;
+}
+
+async function rLeaderboard(){
+  const{data}=await sb.from('leaderboard').select('name,perfect_quizzes').order('perfect_quizzes',{ascending:false}).limit(20);
+  const rows=data||[];
+  const medals=['🥇','🥈','🥉'];
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:1.1rem;">🏆 ${T('leaderboard')}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:500px;margin:0 auto;padding:20px;">
+        ${rows.length===0?`<div style="text-align:center;color:var(--ink2);padding:40px;">${T('lbEmpty')}</div>`:
+          rows.map((r,i)=>`
+          <div class="lb-row ${i<3?'card':''}" style="${i<3?'background:'+['#FFF9E6','#F5F5F5','#FFF4EE'][i]+';border:2px solid '+['#FFD700','#C0C0C0','#CD7F32'][i]+';':''}">
+            <div class="lb-rank">${medals[i]||i+1}</div>
+            <div style="flex:1;font-weight:${i<3?700:400};font-size:${i<3?'1.05':'1'}rem;">${r.name}</div>
+            <div style="font-weight:700;color:var(--sun2);">⭐ ${r.perfect_quizzes}</div>
+          </div>`).join('')}
+      </div>
+    </div>`);
+}
+
+/* ═══════════════════════════════════════
+   ROUTER
+═══════════════════════════════════════ */
+function render(){
+  document.body.classList.toggle('rtl',isAr());
+  if(!S.name||S.step==='lang'||S.step==='name')return rWelcome();
+  if(S.step==='home')return rHome();
+  if(S.step==='abc')return rAbc();
+  if(S.step==='num')return rNum();
+  if(S.step==='vocMenu')return rVocMenu();
+  if(S.step==='voc')return rVoc();
+  if(S.step==='quiz')return rQuiz();
+  if(S.step==='reviewMenu')return rReviewMenu();
+  if(S.step==='leaderboard')return rLeaderboard();
+  if(S.step==='settings')return rSettings();
+  return rHome();
+}
+
+function go(step,params={}){
+  S.step=step;Object.assign(S,params);save();render();
+}
+window.go=go;
+
+/* ═══════════════════════════════════════
+   WELCOME
+═══════════════════════════════════════ */
+function rWelcome(){
+  const cur=S.lang||'en';
+  const rtl=L[cur].d==='rtl';
+  document.body.classList.toggle('rtl',rtl);
+  $('app').innerHTML=`
+    <div style="min-height:100vh;background:linear-gradient(160deg,#FFF0D0,#FFE4A0);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:20px;${rtl?'direction:rtl;font-family:Cairo,sans-serif;':''}">
+      <div style="font-size:80px;animation:float 4s ease-in-out infinite;">☀️</div>
+      <div style="text-align:center;">
+        <div style="font-size:3rem;font-weight:700;color:var(--ink);">Roj</div>
+        <div style="color:var(--ink2);">Hînbûna Kurmancî</div>
+      </div>
+      <div class="card" style="padding:28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px;">
+        <div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">🌐 ${L[cur].pick}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${Object.keys(L).map(k=>`
+              <button onclick="window.selLang('${k}')" class="btn" style="padding:12px 8px;font-size:1rem;border-radius:12px;
+                background:${cur===k?'var(--sun)':'#fff'};color:${cur===k?'#fff':'var(--ink)'};
+                border:2px solid ${cur===k?'var(--sun2)':'var(--border)'};">
+                ${cur===k?'✓ ':''}${L[k].n}</button>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">👤 ${L[cur].name}</div>
+          <input id="ni" type="text" placeholder="${L[cur].ph}" value="${S.name||''}"
+            style="width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:1.1rem;font-family:inherit;background:#FFF6E5;outline:none;">
+        </div>
+        <button onclick="window.doStart()" class="btn btn-sun" style="padding:16px;font-size:1.1rem;border-radius:14px;width:100%;">
+          ${L[cur].go} →</button>
+      </div>
+    </div>`;
+  window.selLang=k=>{S.lang=k;save();rWelcome();};
+  window.doStart=()=>{
+    const n=$('ni').value.trim();
+    if(!n){$('ni').style.borderColor='var(--rose)';$('ni').focus();return;}
+    S.name=n;S.step='home';save();render();
+  };
+  setTimeout(()=>$('ni')?.addEventListener('keypress',e=>{if(e.key==='Enter')window.doStart();}),100);
+}
+
+/* ═══════════════════════════════════════
+   HOME
+═══════════════════════════════════════ */
+function rHome(){
+  const aPct=Math.round(S.prog.abc/ABC.length*100);
+  const nPct=Math.round(S.prog.num/NUMS.length*100);
+  const vDone=Object.values(S.prog.voc).filter(v=>v>=1).length;
+  sh(`
+    <div style="min-height:100vh;padding-bottom:40px;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:24px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:2rem;font-weight:700;">Roj ☀️</div>
+          <div style="color:var(--ink2);">${T('hi')} ${S.name}!</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${S.isPremium?`<span class="badge-premium">⭐ Premium</span>`:`<button onclick="showUpgrade()" class="btn btn-gold" style="padding:8px 14px;font-size:.85rem;border-radius:12px;">${T('premium')}</button>`}
+          <button onclick="go('settings')" class="btn btn-white" style="padding:8px 12px;font-size:1rem;border-radius:14px;border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:1px;">
+            <span>⚙️</span><span style="font-size:.55rem;font-weight:700;color:var(--ink2);">${T('settings')}</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="max-width:500px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- ALPHABET -->
+        <div class="card" style="padding:20px;cursor:pointer;position:relative;" onclick="go('abc')">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="font-size:2.2rem;">🔤</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${T('letters')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.abc}/${ABC.length} · ${S.isPremium?'':FREE_ABC+' free'}</div>
+            </div>
+            ${!S.isPremium?`<span class="badge-free">Free: ${FREE_ABC}</span>`:''}
+          </div>
+          <div class="bar-track" style="height:8px;"><div class="bar-fill" style="height:8px;width:${aPct}%;"></div></div>
+        </div>
+
+        <!-- NUMBERS -->
+        <div class="card" style="padding:20px;cursor:pointer;" onclick="go('num')">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="font-size:2.2rem;">🔢</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${T('numbers')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.num}/${NUMS.length}</div>
+            </div>
+            ${!S.isPremium?`<span class="badge-free">Free: ${FREE_NUM}</span>`:''}
+          </div>
+          <div class="bar-track" style="height:8px;"><div class="bar-fill" style="height:8px;width:${nPct}%;"></div></div>
+        </div>
+
+        <!-- VOCAB -->
+        <div class="card" style="padding:20px;cursor:pointer;" onclick="go('vocMenu')">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="font-size:2.2rem;">📚</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${T('vocab')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${vDone}/${UNITS.length} ${T('unit')}s</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            ${UNITS.map(u=>`
+              <div style="text-align:center;font-size:1.4rem;opacity:${(S.prog.voc[u.id]||0)>=u.words.length?.4:1};position:relative;">
+                ${u.icon}${!u.free&&!S.isPremium?'<span style="position:absolute;top:-2px;right:-2px;font-size:.5rem;">🔒</span>':''}
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- REVIEW -->
+        <div class="card" style="padding:20px;cursor:pointer;" onclick="${S.isPremium?`go('reviewMenu')`:`showUpgrade()`}">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:2.2rem;">🧠</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${T('review')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${T('reviewSub')}</div>
+            </div>
+            ${!S.isPremium?`<span style="font-size:1.2rem;">🔒</span>`:`<span style="font-size:1.4rem;color:#bbb;">›</span>`}
+          </div>
+        </div>
+
+        <!-- LEADERBOARD -->
+        <div class="card" style="padding:20px;cursor:pointer;" onclick="go('leaderboard')">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:2.2rem;">🏆</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${T('leaderboard')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">Top perfect quiz scores</div>
+            </div>
+            <span style="font-size:1.4rem;color:#bbb;">›</span>
+          </div>
+        </div>
+
+      </div>
+    </div>`);
+}
+
+/* ═══════════════════════════════════════
+   ALPHABET
+═══════════════════════════════════════ */
+function rAbc(){
+  const idx=S.abc;
+  const isLocked=!canAccess('abc')&&idx>=FREE_ABC;
+
+  if(isLocked){
+    sh(`
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+        <div style="font-size:60px;margin-bottom:16px;">🔒</div>
+        <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
+        <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
+        <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
+        <button onclick="S.abc=${FREE_ABC-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
+      </div>`);
+    return;
+  }
+
+  const item=ABC[idx];
+  const ph=item.ph[S.lang]||item.ph.en;
+  const ex=item.exM[S.lang]||item.exM.en;
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;"><div style="font-weight:700;">${T('letters')}</div>
+          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${S.isPremium?ABC.length:FREE_ABC}</div></div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="padding:0 20px;background:linear-gradient(135deg,#FFE4A0,#FFF0D0);">
+        <div class="bar-track" style="height:8px;margin-bottom:16px;"><div class="bar-fill" style="height:8px;width:${((idx+1)/(S.isPremium?ABC.length:FREE_ABC)*100).toFixed(0)}%;"></div></div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;">
+        <div class="card pop" style="padding:36px 24px;text-align:center;margin-bottom:16px;">
+          <div class="letter-main">${item.l}</div>
+          <div class="letter-lower">${item.l.toLowerCase()}</div>
+          <div style="background:#FFF0D8;border:2px solid #F4C88A;border-radius:16px;padding:14px 20px;margin:20px 0 8px;display:inline-block;min-width:60%;">
+            <div style="font-size:.85rem;color:var(--ink2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
+            <div style="font-size:1.8rem;font-weight:700;color:var(--sun2);${isAr()?'font-family:Cairo,sans-serif;':''}">${ph}</div>
+          </div>
+          <div style="background:#F0FFF4;border:2px solid #B8E8C8;border-radius:14px;padding:12px 20px;margin-top:8px;">
+            <div style="font-size:.85rem;color:var(--grass2);margin-bottom:4px;">📝 ${T('example')}:</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--grass2);">${item.ex}</div>
+            <div style="color:var(--ink2);font-size:.95rem;">${ex}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button onclick="abcNav(-1)" class="btn btn-nav" ${idx===0?'disabled':''} style="flex:1;max-width:140px;">← ${T('prev')}</button>
+          <div style="display:flex;align-items:center;font-size:.9rem;color:var(--ink2);">${idx+1}/${S.isPremium?ABC.length:FREE_ABC}</div>
+          <button onclick="abcNav(1)" class="btn btn-nav" ${idx>=(S.isPremium?ABC.length:FREE_ABC)-1?'disabled':''} style="flex:1;max-width:140px;">${T('next')} →</button>
+        </div>
+        ${!S.isPremium&&idx===FREE_ABC-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')} — See all ${ABC.length} letters</button>`:''}
+      </div>
+    </div>`);
+  window.abcNav=d=>{
+    const max=S.isPremium?ABC.length:FREE_ABC;
+    S.abc=Math.max(0,Math.min(max-1,S.abc+d));
+    if(S.abc>S.prog.abc)S.prog.abc=S.abc;
+    save();rAbc();
+  };
+}
+
+/* ═══════════════════════════════════════
+   NUMBERS
+═══════════════════════════════════════ */
+function rNum(){
+  const idx=S.num;
+  const max=S.isPremium?NUMS.length:FREE_NUM;
+  if(!canAccess('num')&&idx>=FREE_NUM){
+    sh(`
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+        <div style="font-size:60px;margin-bottom:16px;">🔒</div>
+        <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
+        <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
+        <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
+        <button onclick="S.num=${FREE_NUM-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
+      </div>`);
+    return;
+  }
+  const item=NUMS[idx];
+  const ph=item.ph[S.lang]||item.ph.en;
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#D0EEFF,#E8F6FF);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;"><div style="font-weight:700;color:var(--sky2);">${T('numbers')}</div>
+          <div style="font-size:.85rem;color:var(--sky2);">${idx+1}/${max}</div></div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="padding:0 20px;background:linear-gradient(135deg,#D0EEFF,#E8F6FF);">
+        <div style="background:#B8D8EE;border-radius:99px;height:8px;margin-bottom:16px;overflow:hidden;">
+          <div style="background:var(--sky);border-radius:99px;height:100%;width:${((idx+1)/max*100).toFixed(0)}%;transition:width .4s;"></div>
+        </div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;">
+        <div class="card pop" style="padding:36px 24px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:clamp(80px,22vw,130px);font-weight:700;line-height:1;color:var(--sky2);">${item.n}</div>
+          <div style="font-size:2rem;font-weight:700;margin:12px 0;">${item.ku}</div>
+          <div style="background:#E8F4FF;border:2px solid #9ACAED;border-radius:16px;padding:14px 20px;display:inline-block;min-width:60%;">
+            <div style="font-size:.85rem;color:var(--sky2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
+            <div style="font-size:1.8rem;font-weight:700;color:var(--sky2);${isAr()?'font-family:Cairo,sans-serif;':''}">${ph}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button onclick="numNav(-1)" class="btn btn-nav" ${idx===0?'disabled':''} style="flex:1;max-width:140px;">← ${T('prev')}</button>
+          <div style="display:flex;align-items:center;font-size:.9rem;color:var(--ink2);">${idx+1}/${max}</div>
+          <button onclick="numNav(1)" class="btn btn-nav" ${idx>=max-1?'disabled':''} style="flex:1;max-width:140px;">${T('next')} →</button>
+        </div>
+        ${!S.isPremium&&idx===FREE_NUM-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')} — See all ${NUMS.length} numbers</button>`:''}
+      </div>
+    </div>`);
+  window.numNav=d=>{
+    const mx=S.isPremium?NUMS.length:FREE_NUM;
+    S.num=Math.max(0,Math.min(mx-1,S.num+d));
+    if(S.num>S.prog.num)S.prog.num=S.num;
+    save();rNum();
+  };
+}
+
+/* ═══════════════════════════════════════
+   VOCAB MENU
+═══════════════════════════════════════ */
+function rVocMenu(){
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;">${T('vocab')}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:500px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:10px;">
+        ${UNITS.map(u=>{
+          const done=S.prog.voc[u.id]||0;
+          const pct=Math.round(done/u.words.length*100);
+          const locked=!u.free&&!S.isPremium;
+          return`
+          <div class="card" style="padding:18px;cursor:pointer;${locked?'opacity:.8':''}" onclick="${locked?`showUpgrade()`:`openUnit('${u.id}')`}">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="font-size:2rem;">${u.icon}</div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;">${u.name[S.lang]||u.name.en}</span>
+                  ${locked?`<span style="font-size:.7rem;">🔒</span>`:u.free?`<span class="badge-free">Free</span>`:''}
+                </div>
+                <div style="color:var(--ink2);font-size:.85rem;">${done}/${u.words.length}</div>
+                <div class="bar-track" style="height:5px;margin-top:5px;"><div class="bar-fill" style="height:5px;width:${pct}%;"></div></div>
+              </div>
+              <div style="font-size:1.4rem;color:#bbb;">${locked?'🔒':'›'}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`);
+  window.openUnit=id=>{S.vocUnit=id;S.vocWord=0;S.step='voc';save();render();};
+}
+
+/* ═══════════════════════════════════════
+   VOCAB WORD
+═══════════════════════════════════════ */
+function rVoc(){
+  const unit=UNITS.find(u=>u.id===S.vocUnit);
+  const idx=S.vocWord;
+  const w=unit.words[idx];
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('vocMenu')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
+        <div style="flex:1;text-align:center;">
+          <div style="font-weight:700;">${unit.icon} ${unit.name[S.lang]||unit.name.en}</div>
+          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${unit.words.length}</div>
+        </div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="padding:0 20px;background:linear-gradient(135deg,#FFE4A0,#FFF0D0);">
+        <div class="bar-track" style="height:8px;margin-bottom:16px;"><div class="bar-fill" style="height:8px;width:${((idx+1)/unit.words.length*100).toFixed(0)}%;"></div></div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;">
+        <div class="card pop" style="padding:40px 24px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:72px;margin-bottom:12px;">${w.em}</div>
+          <div style="font-size:2.4rem;font-weight:700;margin-bottom:6px;">${w.ku}</div>
+          <div style="font-size:1.4rem;color:var(--ink2);margin-bottom:20px;">${w.tr[S.lang]||w.tr.en}</div>
+          <div style="background:#FFF0D8;border:2px solid #F4C88A;border-radius:16px;padding:14px 20px;display:inline-block;min-width:55%;">
+            <div style="font-size:.85rem;color:var(--ink2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
+            <div style="font-size:1.7rem;font-weight:700;color:var(--sun2);${isAr()?'font-family:Cairo,sans-serif;':''}">${w.ph[S.lang]||w.ph.en}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;">
+          <button onclick="vocNav(-1)" class="btn btn-nav" ${idx===0?'disabled':''} style="flex:1;">← ${T('prev')}</button>
+          <button onclick="vocNav(1)" class="btn btn-grass" style="flex:1;padding:14px;">
+            ${idx===unit.words.length-1?'✓ '+T('done'):T('next')+' →'}</button>
+        </div>
+      </div>
+    </div>`);
+  window.vocNav=d=>{
+    const unit=UNITS.find(u=>u.id===S.vocUnit);
+    const newIdx=S.vocWord+d;
+    if(newIdx<0){S.vocWord=0;save();rVoc();return;}
+    S.vocWord=Math.min(unit.words.length-1,newIdx);
+    if(S.vocWord+1>(S.prog.voc[S.vocUnit]||0))S.prog.voc[S.vocUnit]=S.vocWord+1;
+    if(d>0&&S.vocWord===unit.words.length-1&&newIdx===unit.words.length){
+      S.prog.voc[S.vocUnit]=unit.words.length;save();
+      confetti(50);
+      sh(`
+        <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+          <div style="font-size:80px;animation:float 4s ease-in-out infinite;">🎉</div>
+          <div style="font-size:2.2rem;font-weight:700;margin:16px 0;">${T('done')}</div>
+          <div style="font-size:3rem;margin:8px 0;">⭐⭐⭐</div>
+          <p style="color:var(--ink2);margin-bottom:28px;">${unit.words.length} ${T('wordOf')}s · ${unit.name[S.lang]||unit.name.en}</p>
+          <button onclick="go('vocMenu')" class="btn btn-grass" style="padding:16px 32px;font-size:1.1rem;border-radius:16px;">← ${T('back')}</button>
+        </div>`);
+      return;
+    }
+    save();rVoc();
+  };
+}
+
+/* ═══════════════════════════════════════
+   REVIEW MENU
+═══════════════════════════════════════ */
+function rReviewMenu(){
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#E8F4FF,#D0EEFF);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:1.1rem;">🧠 ${T('review')}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:500px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:10px;">
+        <div class="card" style="padding:18px;cursor:pointer;" onclick="startQuiz('abc',null)">
+          <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:2rem;">🔤</div>
+            <div><div style="font-weight:700;">${T('letters')}</div><div style="color:var(--ink2);font-size:.85rem;">${ABC.length} letters</div></div>
+            <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
+        </div>
+        <div class="card" style="padding:18px;cursor:pointer;" onclick="startQuiz('num',null)">
+          <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:2rem;">🔢</div>
+            <div><div style="font-weight:700;">${T('numbers')}</div><div style="color:var(--ink2);font-size:.85rem;">${NUMS.length} numbers</div></div>
+            <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
+        </div>
+        <div style="text-align:center;color:var(--ink2);font-size:.9rem;padding:4px 0;">📚 ${T('vocab')}</div>
+        ${UNITS.map(u=>`
+          <div class="card" style="padding:16px;cursor:pointer;" onclick="startQuiz('voc','${u.id}')">
+            <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.8rem;">${u.icon}</div>
+              <div><div style="font-weight:700;">${u.name[S.lang]||u.name.en}</div><div style="color:var(--ink2);font-size:.85rem;">${u.words.length} ${T('wordOf')}s</div></div>
+              <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
+          </div>`).join('')}
+      </div>
+    </div>`);
+}
+
+/* ═══════════════════════════════════════
+   QUIZ
+═══════════════════════════════════════ */
+function buildQuiz(type,unitId){
+  if(type==='abc'){
+    return shuffle(ABC).slice(0,10).map(item=>({
+      q:item.ph[S.lang]||item.ph.en,correct:item.l,
+      opts:shuffle([item.l,...shuffle(ABC.filter(x=>x.l!==item.l)).slice(0,3).map(x=>x.l)])
+    }));
+  }
+  if(type==='num'){
+    return shuffle(NUMS).slice(0,10).map(item=>({
+      q:String(item.n),correct:item.ku,
+      opts:shuffle([item.ku,...shuffle(NUMS.filter(x=>x.n!==item.n)).slice(0,3).map(x=>x.ku)])
+    }));
+  }
+  const unit=UNITS.find(u=>u.id===unitId);
+  return shuffle(unit.words).map(item=>({
+    q:item.tr[S.lang]||item.tr.en,qEm:item.em,correct:item.ku,
+    opts:shuffle([item.ku,...shuffle(unit.words.filter(x=>x.ku!==item.ku)).slice(0,3).map(x=>x.ku)])
+  }));
+}
+
+window.startQuiz=(type,unitId)=>{
+  S.quiz={type,unitId,qs:buildQuiz(type,unitId),cur:0,score:0};
+  S.step='quiz';save();render();
+};
+
+function rQuiz(){
+  const{type,unitId,qs,cur,score}=S.quiz;
+  if(cur>=qs.length)return rQuizResult();
+  const q=qs[cur];
+  const backStep=type==='voc'?'reviewMenu':type==='abc'?'reviewMenu':'reviewMenu';
+  const questionLabel=type==='abc'?T('qAbc'):type==='num'?T('qNum'):T('qVoc');
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#E8F4FF,#D0EEFF);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('${backStep}')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;color:var(--sky2);">🧠 ${T('quiz')} · ${cur+1}/${qs.length}</div>
+        <div style="background:#E8F4FF;border:2px solid #9ACAED;border-radius:10px;padding:6px 14px;font-weight:700;color:var(--sky2);">${score}✓</div>
+      </div>
+      <div style="padding:0 20px;background:linear-gradient(135deg,#E8F4FF,#D0EEFF);">
+        <div style="background:#B8D8EE;border-radius:99px;height:8px;margin-bottom:16px;overflow:hidden;">
+          <div style="background:var(--sky);height:100%;width:${(cur/qs.length*100).toFixed(0)}%;transition:width .4s;border-radius:99px;"></div>
+        </div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;">
+        <div class="card pop" style="padding:28px 24px;text-align:center;margin-bottom:20px;">
+          <div style="font-size:.9rem;color:var(--ink2);margin-bottom:10px;">${questionLabel}</div>
+          ${q.qEm?`<div style="font-size:52px;margin-bottom:8px;">${q.qEm}</div>`:''}
+          <div style="font-size:${type==='num'?'3.5rem':'1.8rem'};font-weight:700;${isAr()?'font-family:Cairo,sans-serif;':''}">${q.q}</div>
+          <div style="font-size:.85rem;color:#9ACAED;margin-top:10px;">${T('answer')}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="opts">
+          ${q.opts.map((opt,i)=>`
+            <button id="opt-${i}" onclick="pickOpt(${i},'${opt.replace(/'/g,"\\'")}')"
+              class="btn btn-white" style="padding:20px 12px;font-size:1.4rem;border:2px solid var(--border);border-radius:16px;">
+              ${opt}</button>`).join('')}
+        </div>
+      </div>
+    </div>`);
+  window.pickOpt=(i,chosen)=>{
+    const correct=S.quiz.qs[S.quiz.cur].correct;
+    const isRight=chosen===correct;
+    S.quiz.qs[S.quiz.cur].opts.forEach((_,j)=>{
+      const b=document.getElementById(`opt-${j}`);if(b)b.disabled=true;
+    });
+    const cb=document.getElementById(`opt-${i}`);
+    if(isRight){
+      cb.style.background='var(--grass)';cb.style.color='#fff';cb.style.borderColor='var(--grass2)';
+      S.quiz.score++;
+    } else {
+      cb.style.background='var(--rose)';cb.style.color='#fff';cb.style.borderColor='var(--rose2)';
+      S.quiz.qs[S.quiz.cur].opts.forEach((opt,j)=>{
+        if(opt===correct){const b=document.getElementById(`opt-${j}`);if(b){b.style.background='var(--grass)';b.style.color='#fff';b.style.borderColor='var(--grass2)';}}
+      });
+    }
+    save();
+    setTimeout(()=>{S.quiz.cur++;save();render();},900);
+  };
+}
+
+function rQuizResult(){
+  const{qs,score,type,unitId}=S.quiz;
+  const pct=Math.round(score/qs.length*100);
+  const emoji=pct===100?'🏆':pct>=70?'⭐':pct>=40?'👍':'💪';
+  const isPerfect=score===qs.length;
+  if(isPerfect&&S.user){updateLeaderboard(score,qs.length);}
+  confetti(isPerfect?80:20);
+  sh(`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+      <div style="font-size:72px;margin-bottom:16px;">${emoji}</div>
+      <div style="font-size:1.1rem;color:var(--ink2);margin-bottom:6px;">${T('qResult')}</div>
+      <div style="font-size:3.5rem;font-weight:700;margin-bottom:4px;">${score}/${qs.length}</div>
+      <div style="font-size:1.3rem;color:var(--ink2);margin-bottom:${isPerfect?8:28}px;">${pct}%</div>
+      ${isPerfect?`<div style="background:#FFF9E6;border:2px solid var(--gold);border-radius:14px;padding:12px 20px;margin-bottom:24px;font-weight:700;color:#8B6914;">${T('perfect')}</div>`:''}
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <button onclick="startQuiz('${type}','${unitId}')" class="btn btn-sky" style="padding:14px 24px;font-size:1rem;border-radius:14px;">🔄 ${T('quiz')}</button>
+        <button onclick="go('reviewMenu')" class="btn btn-grass" style="padding:14px 24px;font-size:1rem;border-radius:14px;">← ${T('back')}</button>
+      </div>
+      ${isPerfect?`<button onclick="go('leaderboard')" class="btn btn-gold" style="padding:12px 24px;font-size:.95rem;border-radius:14px;margin-top:12px;">🏆 ${T('leaderboard')}</button>`:''}
+    </div>`);
+}
+
+/* ═══════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════ */
+function rSettings(){
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="font-size:1.1rem;font-weight:700;">${T('settings')}</div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- NAME -->
+        <div class="card" style="padding:20px;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 ${T('name')}</div>
+          <div style="display:flex;gap:10px;">
+            <input id="sni" type="text" value="${S.name}" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;">
+            <button onclick="saveName()" class="btn btn-grass" style="padding:12px 16px;border-radius:12px;">✓</button>
+          </div>
+          <div id="name-ok" style="color:var(--grass);font-size:.85rem;margin-top:6px;display:none;">✓ ${T('done')}</div>
+        </div>
+
+        <!-- LANGUAGE -->
+        <div class="card" style="padding:20px;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">🌐 ${T('pick')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${Object.keys(L).map(k=>`
+              <button onclick="changeLang('${k}')" class="btn" style="padding:12px 8px;font-size:1rem;border-radius:12px;
+                background:${S.lang===k?'var(--sun)':'#fff'};color:${S.lang===k?'#fff':'var(--ink)'};
+                border:2px solid ${S.lang===k?'var(--sun2)':'var(--border)'};">
+                ${S.lang===k?'✓ ':''}${L[k].n}</button>`).join('')}
+          </div>
+        </div>
+
+        <!-- ACCOUNT -->
+        <div class="card" style="padding:20px;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 Account</div>
+          ${S.user?`
+            <p style="margin-bottom:10px;color:var(--ink2);">📧 ${S.user.email}</p>
+            <p style="margin-bottom:12px;">${S.isPremium?`<span class="badge-premium">⭐ Premium Active</span>`:`<span class="badge-free">Free Plan</span>`}</p>
+            ${!S.isPremium?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:12px;border-radius:12px;margin-bottom:8px;">${T('upgrade')}</button>`:''}
+            <button onclick="doLogout()" class="btn btn-white" style="width:100%;padding:12px;border-radius:12px;border:2px solid var(--border);">${T('logout')}</button>
+          `:`
+            <button onclick="showAuth('login')" class="btn btn-sky" style="width:100%;padding:12px;border-radius:12px;margin-bottom:8px;">${T('login')}</button>
+            <button onclick="showAuth('signup')" class="btn btn-sun" style="width:100%;padding:12px;border-radius:12px;">${T('signup')}</button>
+          `}
+        </div>
+
+        <!-- ABOUT -->
+        <div class="card" style="padding:20px;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;">${T('about')}</div>
+          <p style="color:var(--ink2);line-height:1.5;font-size:.95rem;">${T('aboutTxt')}</p>
+        </div>
+
+        <button onclick="doReset()" class="btn btn-rose" style="padding:16px;font-size:1rem;border-radius:14px;">🗑️ ${T('reset')}</button>
+      </div>
+    </div>`);
+
+  window.saveName=()=>{
+    const v=$('sni').value.trim();if(!v)return;
+    S.name=v;save();
+    $('name-ok').style.display='block';
+    setTimeout(()=>{const el=$('name-ok');if(el)el.style.display='none';},1500);
+  };
+  window.changeLang=k=>{S.lang=k;save();rSettings();};
+  window.doReset=()=>{
+    if(confirm(T('resetQ'))){localStorage.removeItem('roj3');S={...defState};save();render();}
+  };
+}
+
+/* ═══════════════════════════════════════
+   HANDLE STRIPE RETURN
+═══════════════════════════════════════ */
+function handleStripeReturn(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('success')==='true'){
+    window.history.replaceState({},'','/');
+    if(S.user){
+      setTimeout(async()=>{
+        await checkPremium(S.user.id);
+        save();render();
+      },2000);
+    }
+    $('modal-root').innerHTML=`
+      <div class="overlay">
+        <div class="modal pop" style="text-align:center;">
+          <div style="font-size:60px;margin-bottom:16px;">🎉</div>
+          <h2 style="font-size:1.4rem;margin-bottom:8px;">Welcome to Premium!</h2>
+          <p style="color:var(--ink2);margin-bottom:20px;">All content is now unlocked.</p>
+          <button onclick="closeModal();render();" class="btn btn-grass" style="padding:14px 28px;font-size:1rem;border-radius:14px;">Start learning →</button>
+        </div>
+      </div>`;
+  }
+  if(params.get('canceled')==='true'){
+    window.history.replaceState({},'','/');
+  }
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+handleStripeReturn();
+initAuth().then(()=>{render();});
+</script>
+</body>
+</html>
