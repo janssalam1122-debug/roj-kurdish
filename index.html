@@ -70,6 +70,7 @@ const STRIPE_PK='pk_test_51TT6BOPMruGxKA5FDjZAPZkW2H0VsYLrsFjOw6sIjEkSgptCrmGfLZ
 const PRICE_MONTHLY='price_1TT6LHPMruGxKA5FZb0NMbmU';
 const PRICE_YEARLY='price_1TT6PQPMruGxKA5FakGBU9sQ';
 const ADMIN_EMAIL='janhostal@hotmail.com';
+const ADMIN_UID='0e4edcec-1a75-4e3a-b65f-465f2582bdca';
 
 const FREE_ABC=8;
 const FREE_NUM=6;
@@ -230,7 +231,7 @@ const L={
 function T(k){return L[S.lang]?.[k]??L.en[k]??k;}
 function isAr(){return S.lang==='ar';}
 function dir(){return isAr()?'direction:rtl;font-family:Cairo,sans-serif;':'';}
-function isAdmin(){return S.user?.email===ADMIN_EMAIL;}
+function isAdmin(){return S.user?.id===ADMIN_UID||S.user?.email===ADMIN_EMAIL;}
 
 /* ═══════════════════════════════════════
    DATA (Alphabet + Numbers + Units)
