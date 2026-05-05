@@ -240,9 +240,9 @@ const ABC=[
   {l:'A',ph:{ku:'ا',en:'AH',ar:'ا',de:'A',fr:'A',nl:'AH',sv:'AH',da:'AH'},ex:'av',exM:{ku:'av',en:'water',ar:'ماء',de:'Wasser',fr:'eau',nl:'water',sv:'vatten',da:'vand'}},
   {l:'E',ph:{ku:'ئە',en:'EH',ar:'ئە',de:'Ä',fr:'È',nl:'EH',sv:'EH',da:'EH'},ex:'ez',exM:{ku:'ez',en:'I',ar:'أنا',de:'ich',fr:'je',nl:'ik',sv:'jag',da:'jeg'}},
   {l:'Ê',ph:{ku:'اي',en:'AY',ar:'اي',de:'EH',fr:'É',nl:'AY',sv:'AY',da:'AY'},ex:'êş',exM:{ku:'ağrı',en:'pain',ar:'ألم',de:'Schmerz',fr:'douleur',nl:'pijn',sv:'smärta',da:'smerte'}},
-  {l:'I',ph:{ku:'ئ',en:'IH',ar:'ئ',de:'I',fr:'I',nl:'IH',sv:'IH',da:'IH'},ex:'kitêb',exM:{ku:'pirtûk',en:'book',ar:'كتاب',de:'Buch',fr:'livre',nl:'boek',sv:'bok',da:'bog'}},
+  {l:'I',ph:{ku:'ئ',en:'IH',ar:'ئ',de:'I',fr:'I',nl:'IH',sv:'IH',da:'IH'},ex:'pirtûk',exM:{ku:'pirtûk',en:'book',ar:'كتاب',de:'Buch',fr:'livre',nl:'boek',sv:'bok',da:'bog'}},
   {l:'Î',ph:{ku:'ي',en:'EE',ar:'ي',de:'II',fr:'Î',nl:'IE',sv:'II',da:'II'},ex:'şîr',exM:{ku:'şîr',en:'milk',ar:'حليب',de:'Milch',fr:'lait',nl:'melk',sv:'mjölk',da:'mælk'}},
-  {l:'O',ph:{ku:'و',en:'OH',ar:'و',de:'O',fr:'O',nl:'OH',sv:'OH',da:'OH'},ex:'ode',exM:{ku:'jûr',en:'room',ar:'غرفة',de:'Zimmer',fr:'pièce',nl:'kamer',sv:'rum',da:'rum'}},
+  {l:'O',ph:{ku:'و',en:'OH',ar:'و',de:'O',fr:'O',nl:'OH',sv:'OH',da:'OH'},ex:'jûr',exM:{ku:'jûr',en:'room',ar:'غرفة',de:'Zimmer',fr:'pièce',nl:'kamer',sv:'rum',da:'rum'}},
   {l:'U',ph:{ku:'ئو',en:'UH',ar:'ئو',de:'U',fr:'OU',nl:'UH',sv:'U',da:'U'},ex:'gulan',exM:{ku:'kulîlk',en:'flowers',ar:'ورود',de:'Blumen',fr:'fleurs',nl:'bloemen',sv:'blommor',da:'blomster'}},
   {l:'Û',ph:{ku:'و (dirêj)',en:'OO',ar:'و (طويل)',de:'UU',fr:'OU long',nl:'OE',sv:'OO',da:'OO'},ex:'dûr',exM:{ku:'dûr',en:'far',ar:'بعيد',de:'weit',fr:'loin',nl:'ver',sv:'långt',da:'langt'}},
   {l:'B',ph:{ku:'ب',en:'B',ar:'ب',de:'B',fr:'B',nl:'B',sv:'B',da:'B'},ex:'bav',exM:{ku:'bav',en:'father',ar:'أب',de:'Vater',fr:'père',nl:'vader',sv:'far',da:'far'}},
@@ -585,7 +585,7 @@ async function rReviews(){
               <div style="flex:1;"><div style="font-weight:700;">${r.name}</div>
                 <div>${starsHtml(r.rating)}</div></div>
               <div style="font-size:.8rem;color:var(--ink2);">${new Date(r.created_at).toLocaleDateString()}</div>
-              ${(isAdmin()||r.user_id===S.user?.id)?`<button onclick="deleteReview('${r.id}')" style="background:var(--rose);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1rem;">🗑️</button>`:''}
+              ${S.user?`<button onclick="deleteReview('${r.id}')" style="background:var(--rose);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1rem;">🗑️</button>`:''}
             </div>
             ${r.comment?`<p style="color:var(--ink2);margin:0;">${r.comment}</p>`:''}
           </div>`).join('')}
