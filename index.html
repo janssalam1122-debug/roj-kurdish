@@ -559,7 +559,7 @@ function starsHtml(n,interactive=false){
 }
 
 async function rReviews(){
-  const{data}=await sb.from('reviews').select('id,name,rating,comment,lang,created_at').order('created_at',{ascending:false}).limit(50);
+  const{data}=await sb.from('reviews').select('id,user_id,name,rating,comment,lang,created_at').order('created_at',{ascending:false}).limit(50);
   const reviews=data||[];
   sh(`
     <div style="min-height:100vh;${dir()}">
@@ -585,7 +585,7 @@ async function rReviews(){
               <div style="flex:1;"><div style="font-weight:700;">${r.name}</div>
                 <div>${starsHtml(r.rating)}</div></div>
               <div style="font-size:.8rem;color:var(--ink2);">${new Date(r.created_at).toLocaleDateString()}</div>
-              ${isAdmin()?`<button onclick="deleteReview('${r.id}')" style="background:var(--rose);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1rem;">🗑️</button>`:''}
+              ${(isAdmin()||r.user_id===S.user?.id)?`<button onclick="deleteReview('${r.id}')" style="background:var(--rose);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1rem;">🗑️</button>`:''}
             </div>
             ${r.comment?`<p style="color:var(--ink2);margin:0;">${r.comment}</p>`:''}
           </div>`).join('')}
