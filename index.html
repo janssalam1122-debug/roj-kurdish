@@ -15,7 +15,7 @@
   --grass:#7FAD5C;--grass2:#5A7A3E;
   --sky:#5BA3D0;--sky2:#3B7BA8;
   --rose:#E07070;--rose2:#B84040;
-  --gold:#FFD700;
+  --gold:#FFD700;--purple:#9B59B6;
 }
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
 body{font-family:'Fredoka',system-ui,sans-serif;background:var(--cream);color:var(--ink);overscroll-behavior:none;min-height:100vh;}
@@ -31,6 +31,7 @@ body.rtl{direction:rtl;}
 .btn-rose{background:var(--rose);color:#fff;}
 .btn-white{background:#fff;color:var(--ink);}
 .btn-gold{background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;}
+.btn-purple{background:var(--purple);color:#fff;}
 .btn-nav{background:#fff;color:var(--ink);border:2px solid var(--border);box-shadow:0 3px 0 rgba(0,0,0,.12);padding:14px 24px;font-size:1.2rem;}
 .btn-nav:disabled{opacity:.3;}
 .pop{animation:pop .28s cubic-bezier(.18,.89,.32,1.28);}
@@ -43,21 +44,15 @@ body.rtl{direction:rtl;}
 .letter-lower{font-size:clamp(40px,10vw,60px);color:#bbb;font-weight:400;}
 .cf{position:fixed;pointer-events:none;top:-10px;z-index:9999;animation:fall 2.6s linear forwards;}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
-
-/* Auth Modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:var(--card);border-radius:24px;padding:32px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-
-/* Lock overlay */
-.lock-overlay{position:absolute;inset:0;background:rgba(255,248,236,.92);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:10;}
-
-/* Premium badge */
+.modal{background:var(--card);border-radius:24px;padding:32px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto;}
 .badge-premium{background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;border-radius:8px;padding:2px 8px;font-size:.75rem;font-weight:700;}
 .badge-free{background:#E8F0FE;color:#3B7BA8;border-radius:8px;padding:2px 8px;font-size:.75rem;font-weight:700;}
-
-/* Leaderboard */
 .lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;margin-bottom:8px;}
-.lb-rank{font-size:1.4rem;font-weight:700;min-width:32px;text-align:center;}
+.star{font-size:1.4rem;cursor:pointer;transition:transform .1s;}
+.star:hover{transform:scale(1.2);}
+.lang-more{display:none;animation:pop .2s ease;}
+.lang-more.open{display:grid;}
 </style>
 </head>
 <body>
@@ -67,252 +62,326 @@ body.rtl{direction:rtl;}
 
 <script>
 /* ═══════════════════════════════════════
-   ROJ — CONFIG
+   ROJ v3 — CONFIG
 ═══════════════════════════════════════ */
-const SUPABASE_URL = 'https://eblskcouxmdagxnngzzu.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVibHNrY291eG1kYWd4bm5nenp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MzMzMTIsImV4cCI6MjA5MzQwOTMxMn0.gVKR7vUnqgCDHtH1_3UNsMxXON7wArLFS4f7TTKX-VM';
-const STRIPE_PK = 'pk_test_51TT6BOPMruGxKA5FDjZAPZkW2H0VsYLrsFjOw6sIjEkSgptCrmGfLZA83sd1QoJ4lPbRYyHj7xKWfz15WzEXRZzA00QRcmHIAK';
-const PRICE_MONTHLY = 'price_1TT6LHPMruGxKA5FZb0NMbmU';
-const PRICE_YEARLY  = 'price_1TT6PQPMruGxKA5FakGBU9sQ';
+const SUPABASE_URL='https://eblskcouxmdagxnngzzu.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVibHNrY291eG1kYWd4bm5nenp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MzMzMTIsImV4cCI6MjA5MzQwOTMxMn0.gVKR7vUnqgCDHtH1_3UNsMxXON7wArLFS4f7TTKX-VM';
+const STRIPE_PK='pk_test_51TT6BOPMruGxKA5FDjZAPZkW2H0VsYLrsFjOw6sIjEkSgptCrmGfLZA83sd1QoJ4lPbRYyHj7xKWfz15WzEXRZzA00QRcmHIAK';
+const PRICE_MONTHLY='price_1TT6LHPMruGxKA5FZb0NMbmU';
+const PRICE_YEARLY='price_1TT6PQPMruGxKA5FakGBU9sQ';
+const ADMIN_EMAIL='janhostal@hotmail.com';
 
-// Free limits
-const FREE_ABC  = 8;   // first 8 letters (vowels)
-const FREE_NUM  = 6;   // 0-5
-const FREE_UNITS = ['greet']; // only greetings free
+const FREE_ABC=8;
+const FREE_NUM=6;
+const FREE_UNITS=['greet'];
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
 
 /* ═══════════════════════════════════════
-   I18N
+   I18N — 8 LANGUAGES
 ═══════════════════════════════════════ */
 const L={
-  en:{n:'English',d:'ltr',
-    pick:'Choose your language',name:'Your name?',ph:'Name',go:"Let's go!",
-    back:'Back',next:'Next',prev:'Prev',home:'Home',
-    letters:'Alphabet',numbers:'Numbers',vocab:'Words',review:'Review',reviewSub:'Test what you\'ve learned',
-    soundLike:'Sounds like',example:'Example',unit:'Unit',wordOf:'word',of:'of',
-    done:'Done!',settings:'Settings',about:'About',reset:'Reset',resetQ:'Delete all progress?',
-    hi:'Hi',quiz:'Quiz',qAbc:'Which Kurdish letter sounds like:',qNum:'Kurdish word for:',qVoc:'Kurdish word for:',
-    answer:'Answer in Kurdish:',qResult:'Your score',
-    login:'Log in',signup:'Sign up',logout:'Log out',email:'Email',password:'Password',
-    authSwitch:'Don\'t have an account?',authSwitch2:'Already have an account?',
-    premium:'Go Premium',premiumSub:'Unlock all content',
-    monthly:'Monthly',yearly:'Yearly',perMonth:'/month',perYear:'/year',
-    save:'Save 50%',locked:'Premium content',lockedSub:'Upgrade to access all letters, numbers and units.',
-    upgrade:'Upgrade now',leaderboard:'Leaderboard',lbEmpty:'No scores yet — be the first!',
-    perfect:'Perfect score! You\'re on the leaderboard 🏆',
-    manageSubscription:'Manage subscription',
-    aboutTxt:'Roj teaches Kurmanji — the most spoken Kurdish dialect. Start with the alphabet, then numbers, then words.'
-  },
-  ar:{n:'العربية',d:'rtl',
-    pick:'اختر لغتك',name:'ما اسمك؟',ph:'اسمك',go:'هيا نبدأ!',
-    back:'عودة',next:'التالي',prev:'السابق',home:'الرئيسية',
-    letters:'الأبجدية',numbers:'الأرقام',vocab:'الكلمات',review:'مراجعة',reviewSub:'اختبر ما تعلمته',
-    soundLike:'تُنطق',example:'مثال',unit:'وحدة',wordOf:'كلمة',of:'من',
-    done:'انتهى!',settings:'الإعدادات',about:'عن',reset:'إعادة تعيين',resetQ:'حذف كل التقدم؟',
-    hi:'أهلاً',quiz:'اختبار',qAbc:'أيّ حرف كردي ينطق مثل:',qNum:'الكلمة الكردية للرقم:',qVoc:'الكلمة الكردية لـ:',
+  ku:{n:'Kurmancî',flag:'🏔️',d:'ltr',main:true,
+    welcome:'Bi xêr hatî bo Roj!',appSub:'Hînbûna Kurmancî',
+    chooseLanguage:'Zimanê xwe hilbijêre',whatName:'Navê te çi ye?',namePlaceholder:'Navê xwe binivîse',letsStart:'Destpêke!',
+    home:'Mal',letters:'Alfabe',numbers:'Hejmar',vocab:'Peyv',review:'Pratîk',reviewSub:'Zanîna xwe biceribîne',
+    soundLike:'Dengê wê',example:'Mînak',unit:'Yekîne',wordOf:'peyv',of:'ji',done:'Qediya!',
+    settings:'Mîheng',about:'Der barê',reset:'Sifir bike',resetQ:'Hemû pêşketin were jêbirin?',hi:'Silav',
+    quiz:'Ceribandin',qAbc:'Kîjan tîpa Kurmancî wiha dengdide:',qNum:'Peyva Kurmancî ji bo:',qVoc:'Peyva Kurmancî ji bo:',
+    answer:'Bersiva Kurmancî:',qResult:'Encama te',
+    login:'Têkeve',signup:'Tomar bibe',logout:'Derkeve',email:'Email',password:'Şîfre',
+    authSwitch:'Hesabê te tune?',authSwitch2:'Hesabê te heye?',
+    premium:'Premium bibe',premiumSub:'Hemû naverok veke',monthly:'Mehane',yearly:'Salane',perMonth:'/meh',perYear:'/sal',
+    save:'%50 xilas bike',locked:'Naverokê Premium',lockedSub:'Tomar bibe da hemû naverok vebe.',upgrade:'Niha bikire',
+    leaderboard:'Pêşbaz',lbEmpty:'Tu encam tune — yekem bibe!',perfect:'Bêkêmasî! Tu di Pêşbazê de yî 🏆',
+    aboutTxt:'Roj Kurmancî hîn dike — zaravayê Kurdî yê herî belav.',
+    feedback:'Ramanên te',feedbackSub:'Ramanên xwe ji me re bişîne',feedbackPlaceholder:'Ramanên xwe binivîse...',
+    send:'Bişîne',reviews:'Nirxandin',writeReview:'Nirxandina xwe binivîse',yourRating:'Nirxa te',
+    yourComment:'Şîroveya te',commentPlaceholder:'Serpêhatiya xwe parve bike...',submit:'Bişîne',
+    thankYou:'Spas!',seeReviews:'Nirxandinên hemûyan bibîne',feedbackInbox:'Peyamên wergirtî',noFeedback:'Tu peyam tune'},
+  ar:{n:'العربية',flag:'🇸🇦',d:'rtl',main:true,
+    welcome:'مرحباً في روج!',appSub:'تعلم الكردية',
+    chooseLanguage:'اختر لغتك',whatName:'ما اسمك؟',namePlaceholder:'اسمك',letsStart:'هيا نبدأ!',
+    home:'الرئيسية',letters:'الأبجدية',numbers:'الأرقام',vocab:'الكلمات',review:'مراجعة',reviewSub:'اختبر ما تعلمته',
+    soundLike:'تُنطق',example:'مثال',unit:'وحدة',wordOf:'كلمة',of:'من',done:'انتهى!',
+    settings:'الإعدادات',about:'عن',reset:'إعادة تعيين',resetQ:'حذف كل التقدم؟',hi:'أهلاً',
+    quiz:'اختبار',qAbc:'أيّ حرف كردي ينطق مثل:',qNum:'الكلمة الكردية للرقم:',qVoc:'الكلمة الكردية لـ:',
     answer:'الجواب بالكردي:',qResult:'نتيجتك',
     login:'تسجيل الدخول',signup:'إنشاء حساب',logout:'تسجيل الخروج',email:'البريد الإلكتروني',password:'كلمة المرور',
     authSwitch:'ما عندك حساب؟',authSwitch2:'عندك حساب؟',
-    premium:'اشترك الآن',premiumSub:'افتح كل المحتوى',
-    monthly:'شهري',yearly:'سنوي',perMonth:'/شهر',perYear:'/سنة',
-    save:'وفّر 50%',locked:'محتوى مدفوع',lockedSub:'اشترك للوصول لكل الحروف والأرقام والوحدات.',
-    upgrade:'اشترك الآن',leaderboard:'المتصدرون',lbEmpty:'لا توجد نتائج بعد — كن الأول!',
-    perfect:'نتيجة مثالية! أنت في المتصدرين 🏆',
-    manageSubscription:'إدارة الاشتراك',
-    aboutTxt:'روج يعلّم الكرمانجية — أكثر اللهجات الكردية انتشاراً. ابدأ بالأبجدية ثم الأرقام ثم الكلمات.'
-  },
-  de:{n:'Deutsch',d:'ltr',
-    pick:'Wähle deine Sprache',name:'Wie heißt du?',ph:'Dein Name',go:'Los!',
-    back:'Zurück',next:'Weiter',prev:'Zurück',home:'Startseite',
-    letters:'Alphabet',numbers:'Zahlen',vocab:'Wörter',review:'Wiederholung',reviewSub:'Teste dein Wissen',
-    soundLike:'Klingt wie',example:'Beispiel',unit:'Einheit',wordOf:'Wort',of:'von',
-    done:'Fertig!',settings:'Einstellungen',about:'Über',reset:'Zurücksetzen',resetQ:'Alle Fortschritte löschen?',
-    hi:'Hi',quiz:'Quiz',qAbc:'Welcher Buchstabe klingt wie:',qNum:'Kurdisch für:',qVoc:'Kurdisch für:',
+    premium:'اشترك الآن',premiumSub:'افتح كل المحتوى',monthly:'شهري',yearly:'سنوي',perMonth:'/شهر',perYear:'/سنة',
+    save:'وفّر 50%',locked:'محتوى مدفوع',lockedSub:'اشترك للوصول لكل المحتوى.',upgrade:'اشترك الآن',
+    leaderboard:'المتصدرون',lbEmpty:'لا توجد نتائج — كن الأول!',perfect:'نتيجة مثالية! أنت في المتصدرين 🏆',
+    aboutTxt:'روج يعلّم الكرمانجية — أكثر اللهجات الكردية انتشاراً.',
+    feedback:'آراؤك',feedbackSub:'أرسل لنا رأيك',feedbackPlaceholder:'اكتب رأيك...',
+    send:'إرسال',reviews:'التقييمات',writeReview:'اكتب تقييمك',yourRating:'تقييمك',
+    yourComment:'تعليقك',commentPlaceholder:'شارك تجربتك...',submit:'إرسال',
+    thankYou:'شكراً!',seeReviews:'شاهد كل التقييمات',feedbackInbox:'صندوق الآراء',noFeedback:'لا توجد رسائل'},
+  en:{n:'English',flag:'🇬🇧',d:'ltr',main:true,
+    welcome:'Welcome to Roj!',appSub:'Learn Kurdish — the right way',
+    chooseLanguage:'Choose your language',whatName:'What is your name?',namePlaceholder:'Your name',letsStart:"Let's go!",
+    home:'Home',letters:'Alphabet',numbers:'Numbers',vocab:'Words',review:'Review',reviewSub:"Test what you've learned",
+    soundLike:'Sounds like',example:'Example',unit:'Unit',wordOf:'word',of:'of',done:'Done!',
+    settings:'Settings',about:'About',reset:'Reset',resetQ:'Delete all progress?',hi:'Hi',
+    quiz:'Quiz',qAbc:'Which Kurdish letter sounds like:',qNum:'Kurdish word for:',qVoc:'Kurdish word for:',
+    answer:'Answer in Kurdish:',qResult:'Your score',
+    login:'Log in',signup:'Sign up',logout:'Log out',email:'Email',password:'Password',
+    authSwitch:"Don't have an account?",authSwitch2:'Already have an account?',
+    premium:'Go Premium',premiumSub:'Unlock all content',monthly:'Monthly',yearly:'Yearly',perMonth:'/month',perYear:'/year',
+    save:'Save 50%',locked:'Premium content',lockedSub:'Upgrade to access all content.',upgrade:'Upgrade now',
+    leaderboard:'Leaderboard',lbEmpty:'No scores yet — be the first!',perfect:'Perfect score! You are on the leaderboard 🏆',
+    aboutTxt:'Roj teaches Kurmanji — the most spoken Kurdish dialect.',
+    feedback:'Your feedback',feedbackSub:'Send us your thoughts',feedbackPlaceholder:'Write your thoughts...',
+    send:'Send',reviews:'Reviews',writeReview:'Write a review',yourRating:'Your rating',
+    yourComment:'Your comment',commentPlaceholder:'Share your experience...',submit:'Submit',
+    thankYou:'Thank you!',seeReviews:'See all reviews',feedbackInbox:'Feedback inbox',noFeedback:'No messages yet'},
+  de:{n:'Deutsch',flag:'🇩🇪',d:'ltr',main:true,
+    welcome:'Willkommen bei Roj!',appSub:'Lerne Kurdisch — richtig',
+    chooseLanguage:'Wähle deine Sprache',whatName:'Wie heißt du?',namePlaceholder:'Dein Name',letsStart:'Los!',
+    home:'Startseite',letters:'Alphabet',numbers:'Zahlen',vocab:'Wörter',review:'Wiederholung',reviewSub:'Teste dein Wissen',
+    soundLike:'Klingt wie',example:'Beispiel',unit:'Einheit',wordOf:'Wort',of:'von',done:'Fertig!',
+    settings:'Einstellungen',about:'Über',reset:'Zurücksetzen',resetQ:'Alle Fortschritte löschen?',hi:'Hi',
+    quiz:'Quiz',qAbc:'Welcher Buchstabe klingt wie:',qNum:'Kurdisch für:',qVoc:'Kurdisch für:',
     answer:'Antwort auf Kurdisch:',qResult:'Dein Ergebnis',
     login:'Anmelden',signup:'Registrieren',logout:'Abmelden',email:'E-Mail',password:'Passwort',
     authSwitch:'Noch kein Konto?',authSwitch2:'Bereits registriert?',
-    premium:'Premium werden',premiumSub:'Alle Inhalte freischalten',
-    monthly:'Monatlich',yearly:'Jährlich',perMonth:'/Monat',perYear:'/Jahr',
-    save:'50% sparen',locked:'Premium-Inhalt',lockedSub:'Upgrade für alle Buchstaben, Zahlen und Einheiten.',
-    upgrade:'Jetzt upgraden',leaderboard:'Bestenliste',lbEmpty:'Noch keine Einträge — sei der Erste!',
-    perfect:'Perfekte Punktzahl! Du bist auf der Bestenliste 🏆',
-    manageSubscription:'Abonnement verwalten',
-    aboutTxt:'Roj unterrichtet Kurmancî — den meistgesprochenen kurdischen Dialekt.'
-  },
-  fr:{n:'Français',d:'ltr',
-    pick:'Choisis ta langue',name:'Ton prénom?',ph:'Prénom',go:"C'est parti!",
-    back:'Retour',next:'Suivant',prev:'Précédent',home:'Accueil',
-    letters:'Alphabet',numbers:'Nombres',vocab:'Mots',review:'Révision',reviewSub:'Teste tes connaissances',
-    soundLike:'Se prononce',example:'Exemple',unit:'Unité',wordOf:'mot',of:'sur',
-    done:'Terminé!',settings:'Paramètres',about:'À propos',reset:'Réinitialiser',resetQ:'Supprimer toute la progression?',
-    hi:'Salut',quiz:'Quiz',qAbc:'Quelle lettre kurde se prononce:',qNum:'Le mot kurde pour:',qVoc:'Le mot kurde pour:',
+    premium:'Premium werden',premiumSub:'Alle Inhalte freischalten',monthly:'Monatlich',yearly:'Jährlich',perMonth:'/Monat',perYear:'/Jahr',
+    save:'50% sparen',locked:'Premium-Inhalt',lockedSub:'Upgrade für alle Inhalte.',upgrade:'Jetzt upgraden',
+    leaderboard:'Bestenliste',lbEmpty:'Noch keine Einträge — sei der Erste!',perfect:'Perfekte Punktzahl! Du bist auf der Bestenliste 🏆',
+    aboutTxt:'Roj unterrichtet Kurmancî — den meistgesprochenen kurdischen Dialekt.',
+    feedback:'Dein Feedback',feedbackSub:'Sende uns deine Gedanken',feedbackPlaceholder:'Schreib deine Gedanken...',
+    send:'Senden',reviews:'Bewertungen',writeReview:'Bewertung schreiben',yourRating:'Deine Bewertung',
+    yourComment:'Dein Kommentar',commentPlaceholder:'Teile deine Erfahrung...',submit:'Absenden',
+    thankYou:'Danke!',seeReviews:'Alle Bewertungen sehen',feedbackInbox:'Feedback-Posteingang',noFeedback:'Noch keine Nachrichten'},
+  fr:{n:'Français',flag:'🇫🇷',d:'ltr',main:false,
+    welcome:'Bienvenue à Roj!',appSub:"Apprends le kurde",
+    chooseLanguage:'Choisis ta langue',whatName:'Ton prénom?',namePlaceholder:'Ton prénom',letsStart:"C'est parti!",
+    home:'Accueil',letters:'Alphabet',numbers:'Nombres',vocab:'Mots',review:'Révision',reviewSub:'Teste tes connaissances',
+    soundLike:'Se prononce',example:'Exemple',unit:'Unité',wordOf:'mot',of:'sur',done:'Terminé!',
+    settings:'Paramètres',about:'À propos',reset:'Réinitialiser',resetQ:'Supprimer toute la progression?',hi:'Salut',
+    quiz:'Quiz',qAbc:'Quelle lettre kurde se prononce:',qNum:'Le mot kurde pour:',qVoc:'Le mot kurde pour:',
     answer:'Réponse en kurde:',qResult:'Ton score',
     login:'Se connecter',signup:"S'inscrire",logout:'Se déconnecter',email:'E-mail',password:'Mot de passe',
     authSwitch:'Pas encore de compte?',authSwitch2:'Déjà un compte?',
-    premium:'Devenir Premium',premiumSub:'Débloquer tout le contenu',
-    monthly:'Mensuel',yearly:'Annuel',perMonth:'/mois',perYear:'/an',
-    save:'Économise 50%',locked:'Contenu Premium',lockedSub:'Abonne-toi pour accéder à toutes les lettres, chiffres et unités.',
-    upgrade:"S'abonner",leaderboard:'Classement',lbEmpty:'Aucun score — sois le premier!',
-    perfect:'Score parfait! Tu es dans le classement 🏆',
-    manageSubscription:"Gérer l'abonnement",
-    aboutTxt:"Roj enseigne le Kurmancî — le dialecte kurde le plus parlé."
-  }
+    premium:'Devenir Premium',premiumSub:'Débloquer tout le contenu',monthly:'Mensuel',yearly:'Annuel',perMonth:'/mois',perYear:'/an',
+    save:'Économise 50%',locked:'Contenu Premium',lockedSub:"Abonne-toi pour accéder à tout.",upgrade:"S'abonner",
+    leaderboard:'Classement',lbEmpty:'Aucun score — sois le premier!',perfect:'Score parfait! Tu es dans le classement 🏆',
+    aboutTxt:"Roj enseigne le Kurmancî — le dialecte kurde le plus parlé.",
+    feedback:'Ton avis',feedbackSub:'Envoie-nous tes pensées',feedbackPlaceholder:'Écris tes pensées...',
+    send:'Envoyer',reviews:'Avis',writeReview:'Écrire un avis',yourRating:'Ta note',
+    yourComment:'Ton commentaire',commentPlaceholder:'Partage ton expérience...',submit:'Soumettre',
+    thankYou:'Merci!',seeReviews:'Voir tous les avis',feedbackInbox:'Boîte de retours',noFeedback:'Pas encore de messages'},
+  nl:{n:'Nederlands',flag:'🇳🇱',d:'ltr',main:false,
+    welcome:'Welkom bij Roj!',appSub:'Leer Koerdisch',
+    chooseLanguage:'Kies je taal',whatName:'Wat is je naam?',namePlaceholder:'Jouw naam',letsStart:'Begin!',
+    home:'Thuis',letters:'Alfabet',numbers:'Nummers',vocab:'Woorden',review:'Herhaling',reviewSub:'Test je kennis',
+    soundLike:'Klinkt als',example:'Voorbeeld',unit:'Eenheid',wordOf:'woord',of:'van',done:'Klaar!',
+    settings:'Instellingen',about:'Over',reset:'Opnieuw instellen',resetQ:'Alle voortgang verwijderen?',hi:'Hoi',
+    quiz:'Quiz',qAbc:'Welke Koerdische letter klinkt als:',qNum:'Koerdisch woord voor:',qVoc:'Koerdisch woord voor:',
+    answer:'Antwoord in het Koerdisch:',qResult:'Jouw score',
+    login:'Inloggen',signup:'Registreren',logout:'Uitloggen',email:'E-mail',password:'Wachtwoord',
+    authSwitch:'Nog geen account?',authSwitch2:'Al een account?',
+    premium:'Premium worden',premiumSub:'Ontgrendel alle inhoud',monthly:'Maandelijks',yearly:'Jaarlijks',perMonth:'/maand',perYear:'/jaar',
+    save:'Bespaar 50%',locked:'Premium inhoud',lockedSub:'Upgrade voor toegang tot alle inhoud.',upgrade:'Nu upgraden',
+    leaderboard:'Ranglijst',lbEmpty:'Nog geen scores — wees de eerste!',perfect:'Perfecte score! Je staat op de ranglijst 🏆',
+    aboutTxt:'Roj leert Kurmancî — het meest gesproken Koerdische dialect.',
+    feedback:'Jouw feedback',feedbackSub:'Stuur ons je gedachten',feedbackPlaceholder:'Schrijf je gedachten...',
+    send:'Versturen',reviews:'Beoordelingen',writeReview:'Schrijf een beoordeling',yourRating:'Jouw beoordeling',
+    yourComment:'Jouw opmerking',commentPlaceholder:'Deel je ervaring...',submit:'Indienen',
+    thankYou:'Dankjewel!',seeReviews:'Alle beoordelingen zien',feedbackInbox:'Feedback inbox',noFeedback:'Nog geen berichten'},
+  sv:{n:'Svenska',flag:'🇸🇪',d:'ltr',main:false,
+    welcome:'Välkommen till Roj!',appSub:'Lär dig kurdiska',
+    chooseLanguage:'Välj ditt språk',whatName:'Vad heter du?',namePlaceholder:'Ditt namn',letsStart:'Kom igång!',
+    home:'Hem',letters:'Alfabet',numbers:'Siffror',vocab:'Ord',review:'Repetition',reviewSub:'Testa dina kunskaper',
+    soundLike:'Låter som',example:'Exempel',unit:'Enhet',wordOf:'ord',of:'av',done:'Klar!',
+    settings:'Inställningar',about:'Om',reset:'Återställ',resetQ:'Ta bort alla framsteg?',hi:'Hej',
+    quiz:'Quiz',qAbc:'Vilken kurdisk bokstav låter som:',qNum:'Kurdiskt ord för:',qVoc:'Kurdiskt ord för:',
+    answer:'Svar på kurdiska:',qResult:'Ditt resultat',
+    login:'Logga in',signup:'Registrera',logout:'Logga ut',email:'E-post',password:'Lösenord',
+    authSwitch:'Inget konto?',authSwitch2:'Har redan ett konto?',
+    premium:'Bli Premium',premiumSub:'Lås upp allt innehåll',monthly:'Månadsvis',yearly:'Årsvis',perMonth:'/månad',perYear:'/år',
+    save:'Spara 50%',locked:'Premium-innehåll',lockedSub:'Uppgradera för tillgång till allt.',upgrade:'Uppgradera nu',
+    leaderboard:'Topplista',lbEmpty:'Inga poäng än — var den första!',perfect:'Perfekt poäng! Du är på topplistan 🏆',
+    aboutTxt:'Roj lär ut Kurmancî — den mest talade kurdiska dialekten.',
+    feedback:'Din feedback',feedbackSub:'Skicka oss dina tankar',feedbackPlaceholder:'Skriv dina tankar...',
+    send:'Skicka',reviews:'Recensioner',writeReview:'Skriv en recension',yourRating:'Ditt betyg',
+    yourComment:'Din kommentar',commentPlaceholder:'Dela din upplevelse...',submit:'Skicka in',
+    thankYou:'Tack!',seeReviews:'Se alla recensioner',feedbackInbox:'Feedback-inkorg',noFeedback:'Inga meddelanden än'},
+  da:{n:'Dansk',flag:'🇩🇰',d:'ltr',main:false,
+    welcome:'Velkommen til Roj!',appSub:'Lær kurdisk',
+    chooseLanguage:'Vælg dit sprog',whatName:'Hvad hedder du?',namePlaceholder:'Dit navn',letsStart:'Kom i gang!',
+    home:'Hjem',letters:'Alfabet',numbers:'Tal',vocab:'Ord',review:'Gennemgang',reviewSub:'Test din viden',
+    soundLike:'Lyder som',example:'Eksempel',unit:'Enhed',wordOf:'ord',of:'af',done:'Færdig!',
+    settings:'Indstillinger',about:'Om',reset:'Nulstil',resetQ:'Slet alle fremskridt?',hi:'Hej',
+    quiz:'Quiz',qAbc:'Hvilket kurdisk bogstav lyder som:',qNum:'Kurdisk ord for:',qVoc:'Kurdisk ord for:',
+    answer:'Svar på kurdisk:',qResult:'Dit resultat',
+    login:'Log ind',signup:'Tilmeld',logout:'Log ud',email:'E-mail',password:'Adgangskode',
+    authSwitch:'Ingen konto?',authSwitch2:'Har allerede en konto?',
+    premium:'Bliv Premium',premiumSub:'Lås op for alt indhold',monthly:'Månedligt',yearly:'Årligt',perMonth:'/måned',perYear:'/år',
+    save:'Spar 50%',locked:'Premium indhold',lockedSub:'Opgrader for adgang til alt.',upgrade:'Opgrader nu',
+    leaderboard:'Rangliste',lbEmpty:'Ingen score endnu — vær den første!',perfect:'Perfekt score! Du er på ranglisten 🏆',
+    aboutTxt:'Roj underviser i Kurmancî — den mest talte kurdiske dialekt.',
+    feedback:'Din feedback',feedbackSub:'Send os dine tanker',feedbackPlaceholder:'Skriv dine tanker...',
+    send:'Send',reviews:'Anmeldelser',writeReview:'Skriv en anmeldelse',yourRating:'Din vurdering',
+    yourComment:'Din kommentar',commentPlaceholder:'Del din oplevelse...',submit:'Indsend',
+    thankYou:'Tak!',seeReviews:'Se alle anmeldelser',feedbackInbox:'Feedback-indbakke',noFeedback:'Ingen beskeder endnu'}
 };
-function T(k){return L[S.lang]?.[k]??k;}
+
+function T(k){return L[S.lang]?.[k]??L.en[k]??k;}
 function isAr(){return S.lang==='ar';}
 function dir(){return isAr()?'direction:rtl;font-family:Cairo,sans-serif;':'';}
+function isAdmin(){return S.user?.email===ADMIN_EMAIL;}
 
 /* ═══════════════════════════════════════
-   DATA
+   DATA (Alphabet + Numbers + Units)
 ═══════════════════════════════════════ */
 const ABC=[
-  {l:'A',ph:{en:'AH',ar:'ا',de:'A',fr:'A'},ex:'av',exM:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'}},
-  {l:'E',ph:{en:'EH',ar:'ئە',de:'Ä',fr:'È'},ex:'ez',exM:{en:'I',ar:'أنا',de:'ich',fr:'je'}},
-  {l:'Ê',ph:{en:'AY',ar:'اي',de:'EH',fr:'É'},ex:'êş',exM:{en:'pain',ar:'ألم',de:'Schmerz',fr:'douleur'}},
-  {l:'I',ph:{en:'IH',ar:'ئ',de:'I',fr:'I'},ex:'kitêb',exM:{en:'book',ar:'كتاب',de:'Buch',fr:'livre'}},
-  {l:'Î',ph:{en:'EE',ar:'ي',de:'II',fr:'Î'},ex:'şîr',exM:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'}},
-  {l:'O',ph:{en:'OH',ar:'و',de:'O',fr:'O'},ex:'ode',exM:{en:'room',ar:'غرفة',de:'Zimmer',fr:'pièce'}},
-  {l:'U',ph:{en:'UH',ar:'ئو',de:'U',fr:'OU'},ex:'gulan',exM:{en:'flowers',ar:'ورود',de:'Blumen',fr:'fleurs'}},
-  {l:'Û',ph:{en:'OO',ar:'و (طويل)',de:'UU',fr:'OU long'},ex:'dûr',exM:{en:'far',ar:'بعيد',de:'weit',fr:'loin'}},
-  {l:'B',ph:{en:'B',ar:'ب',de:'B',fr:'B'},ex:'bav',exM:{en:'father',ar:'أب',de:'Vater',fr:'père'}},
-  {l:'C',ph:{en:'J (joy)',ar:'ج',de:'DSCH',fr:'DJ'},ex:'cêjin',exM:{en:'party',ar:'عيد',de:'Fest',fr:'fête'}},
-  {l:'D',ph:{en:'D',ar:'د',de:'D',fr:'D'},ex:'dê',exM:{en:'mother',ar:'أم',de:'Mutter',fr:'mère'}},
-  {l:'F',ph:{en:'F',ar:'ف',de:'F',fr:'F'},ex:'fil',exM:{en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant'}},
-  {l:'G',ph:{en:'G',ar:'گ',de:'G',fr:'G'},ex:'gul',exM:{en:'flower',ar:'وردة',de:'Blume',fr:'fleur'}},
-  {l:'H',ph:{en:'H',ar:'ه',de:'H',fr:'H'},ex:'heval',exM:{en:'friend',ar:'صديق',de:'Freund',fr:'ami'}},
-  {l:'J',ph:{en:'ZH (vision)',ar:'ژ',de:'J (fr.)',fr:'J'},ex:'jin',exM:{en:'woman',ar:'امرأة',de:'Frau',fr:'femme'}},
-  {l:'K',ph:{en:'K',ar:'ك',de:'K',fr:'K'},ex:'kûçik',exM:{en:'dog',ar:'كلب',de:'Hund',fr:'chien'}},
-  {l:'L',ph:{en:'L',ar:'ل',de:'L',fr:'L'},ex:'lîmon',exM:{en:'lemon',ar:'ليمون',de:'Zitrone',fr:'citron'}},
-  {l:'M',ph:{en:'M',ar:'م',de:'M',fr:'M'},ex:'mal',exM:{en:'house',ar:'بيت',de:'Haus',fr:'maison'}},
-  {l:'N',ph:{en:'N',ar:'ن',de:'N',fr:'N'},ex:'nan',exM:{en:'bread',ar:'خبز',de:'Brot',fr:'pain'}},
-  {l:'P',ph:{en:'P',ar:'پ',de:'P',fr:'P'},ex:'pîvaz',exM:{en:'onion',ar:'بصل',de:'Zwiebel',fr:'oignon'}},
-  {l:'Q',ph:{en:'K (throat)',ar:'ق',de:'CH (Bach)',fr:'Q'},ex:'qelem',exM:{en:'pen',ar:'قلم',de:'Stift',fr:'stylo'}},
-  {l:'R',ph:{en:'R (rolled)',ar:'ر',de:'R',fr:'R'},ex:'roj',exM:{en:'sun',ar:'شمس',de:'Sonne',fr:'soleil'}},
-  {l:'S',ph:{en:'S',ar:'س',de:'S',fr:'S'},ex:'sêv',exM:{en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme'}},
-  {l:'T',ph:{en:'T',ar:'ت',de:'T',fr:'T'},ex:'tav',exM:{en:'sunshine',ar:'أشعة',de:'Sonnenschein',fr:'soleil'}},
-  {l:'V',ph:{en:'V',ar:'ڤ',de:'W',fr:'V'},ex:'av',exM:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'}},
-  {l:'W',ph:{en:'W',ar:'و',de:'W',fr:'W'},ex:'welat',exM:{en:'homeland',ar:'وطن',de:'Heimat',fr:'patrie'}},
-  {l:'X',ph:{en:'KH (Bach)',ar:'خ',de:'CH (Bach)',fr:'J (fr.)'},ex:'xanî',exM:{en:'home',ar:'بيت',de:'Haus',fr:'maison'}},
-  {l:'Y',ph:{en:'Y (yes)',ar:'ي',de:'J (ja)',fr:'Y'},ex:'yek',exM:{en:'one',ar:'واحد',de:'eins',fr:'un'}},
-  {l:'Z',ph:{en:'Z',ar:'ز',de:'S (Rose)',fr:'Z'},ex:'zer',exM:{en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune'}},
-  {l:'Ç',ph:{en:'CH (church)',ar:'چ',de:'TSCH',fr:'TCH'},ex:'çav',exM:{en:'eye',ar:'عين',de:'Auge',fr:'œil'}},
-  {l:'Ş',ph:{en:'SH (shoe)',ar:'ش',de:'SCH',fr:'CH'},ex:'şîr',exM:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'}}
+  {l:'A',ph:{ku:'ا',en:'AH',ar:'ا',de:'A',fr:'A',nl:'AH',sv:'AH',da:'AH'},ex:'av',exM:{ku:'av',en:'water',ar:'ماء',de:'Wasser',fr:'eau',nl:'water',sv:'vatten',da:'vand'}},
+  {l:'E',ph:{ku:'ئە',en:'EH',ar:'ئە',de:'Ä',fr:'È',nl:'EH',sv:'EH',da:'EH'},ex:'ez',exM:{ku:'ez',en:'I',ar:'أنا',de:'ich',fr:'je',nl:'ik',sv:'jag',da:'jeg'}},
+  {l:'Ê',ph:{ku:'اي',en:'AY',ar:'اي',de:'EH',fr:'É',nl:'AY',sv:'AY',da:'AY'},ex:'êş',exM:{ku:'ağrı',en:'pain',ar:'ألم',de:'Schmerz',fr:'douleur',nl:'pijn',sv:'smärta',da:'smerte'}},
+  {l:'I',ph:{ku:'ئ',en:'IH',ar:'ئ',de:'I',fr:'I',nl:'IH',sv:'IH',da:'IH'},ex:'kitêb',exM:{ku:'pirtûk',en:'book',ar:'كتاب',de:'Buch',fr:'livre',nl:'boek',sv:'bok',da:'bog'}},
+  {l:'Î',ph:{ku:'ي',en:'EE',ar:'ي',de:'II',fr:'Î',nl:'IE',sv:'II',da:'II'},ex:'şîr',exM:{ku:'şîr',en:'milk',ar:'حليب',de:'Milch',fr:'lait',nl:'melk',sv:'mjölk',da:'mælk'}},
+  {l:'O',ph:{ku:'و',en:'OH',ar:'و',de:'O',fr:'O',nl:'OH',sv:'OH',da:'OH'},ex:'ode',exM:{ku:'jûr',en:'room',ar:'غرفة',de:'Zimmer',fr:'pièce',nl:'kamer',sv:'rum',da:'rum'}},
+  {l:'U',ph:{ku:'ئو',en:'UH',ar:'ئو',de:'U',fr:'OU',nl:'UH',sv:'U',da:'U'},ex:'gulan',exM:{ku:'kulîlk',en:'flowers',ar:'ورود',de:'Blumen',fr:'fleurs',nl:'bloemen',sv:'blommor',da:'blomster'}},
+  {l:'Û',ph:{ku:'و (dirêj)',en:'OO',ar:'و (طويل)',de:'UU',fr:'OU long',nl:'OE',sv:'OO',da:'OO'},ex:'dûr',exM:{ku:'dûr',en:'far',ar:'بعيد',de:'weit',fr:'loin',nl:'ver',sv:'långt',da:'langt'}},
+  {l:'B',ph:{ku:'ب',en:'B',ar:'ب',de:'B',fr:'B',nl:'B',sv:'B',da:'B'},ex:'bav',exM:{ku:'bav',en:'father',ar:'أب',de:'Vater',fr:'père',nl:'vader',sv:'far',da:'far'}},
+  {l:'C',ph:{ku:'ج',en:'J (joy)',ar:'ج',de:'DSCH',fr:'DJ',nl:'DZJ',sv:'DJ',da:'DJ'},ex:'cêjin',exM:{ku:'şahî',en:'party',ar:'عيد',de:'Fest',fr:'fête',nl:'feest',sv:'fest',da:'fest'}},
+  {l:'D',ph:{ku:'د',en:'D',ar:'د',de:'D',fr:'D',nl:'D',sv:'D',da:'D'},ex:'dê',exM:{ku:'dê',en:'mother',ar:'أم',de:'Mutter',fr:'mère',nl:'moeder',sv:'mamma',da:'mor'}},
+  {l:'F',ph:{ku:'ف',en:'F',ar:'ف',de:'F',fr:'F',nl:'F',sv:'F',da:'F'},ex:'fil',exM:{ku:'fîl',en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant',nl:'olifant',sv:'elefant',da:'elefant'}},
+  {l:'G',ph:{ku:'گ',en:'G',ar:'گ',de:'G',fr:'G',nl:'G',sv:'G',da:'G'},ex:'gul',exM:{ku:'kulîlk',en:'flower',ar:'وردة',de:'Blume',fr:'fleur',nl:'bloem',sv:'blomma',da:'blomst'}},
+  {l:'H',ph:{ku:'ه',en:'H',ar:'ه',de:'H',fr:'H',nl:'H',sv:'H',da:'H'},ex:'heval',exM:{ku:'heval',en:'friend',ar:'صديق',de:'Freund',fr:'ami',nl:'vriend',sv:'vän',da:'ven'}},
+  {l:'J',ph:{ku:'ژ',en:'ZH (vision)',ar:'ژ',de:'J (fr.)',fr:'J',nl:'ZJ',sv:'ZH',da:'ZH'},ex:'jin',exM:{ku:'jin',en:'woman',ar:'امرأة',de:'Frau',fr:'femme',nl:'vrouw',sv:'kvinna',da:'kvinde'}},
+  {l:'K',ph:{ku:'ك',en:'K',ar:'ك',de:'K',fr:'K',nl:'K',sv:'K',da:'K'},ex:'kûçik',exM:{ku:'kûçik',en:'dog',ar:'كلب',de:'Hund',fr:'chien',nl:'hond',sv:'hund',da:'hund'}},
+  {l:'L',ph:{ku:'ل',en:'L',ar:'ل',de:'L',fr:'L',nl:'L',sv:'L',da:'L'},ex:'lîmon',exM:{ku:'lîmon',en:'lemon',ar:'ليمون',de:'Zitrone',fr:'citron',nl:'citroen',sv:'citron',da:'citron'}},
+  {l:'M',ph:{ku:'م',en:'M',ar:'م',de:'M',fr:'M',nl:'M',sv:'M',da:'M'},ex:'mal',exM:{ku:'mal',en:'house',ar:'بيت',de:'Haus',fr:'maison',nl:'huis',sv:'hus',da:'hus'}},
+  {l:'N',ph:{ku:'ن',en:'N',ar:'ن',de:'N',fr:'N',nl:'N',sv:'N',da:'N'},ex:'nan',exM:{ku:'nan',en:'bread',ar:'خبز',de:'Brot',fr:'pain',nl:'brood',sv:'bröd',da:'brød'}},
+  {l:'P',ph:{ku:'پ',en:'P',ar:'پ',de:'P',fr:'P',nl:'P',sv:'P',da:'P'},ex:'pîvaz',exM:{ku:'pîvaz',en:'onion',ar:'بصل',de:'Zwiebel',fr:'oignon',nl:'ui',sv:'lök',da:'løg'}},
+  {l:'Q',ph:{ku:'ق',en:'K (throat)',ar:'ق',de:'CH (Bach)',fr:'Q',nl:'K (keel)',sv:'K (hals)',da:'K (hals)'},ex:'qelem',exM:{ku:'qelem',en:'pen',ar:'قلم',de:'Stift',fr:'stylo',nl:'pen',sv:'penna',da:'pen'}},
+  {l:'R',ph:{ku:'ر',en:'R (rolled)',ar:'ر',de:'R',fr:'R',nl:'R',sv:'R',da:'R'},ex:'roj',exM:{ku:'roj',en:'sun',ar:'شمس',de:'Sonne',fr:'soleil',nl:'zon',sv:'sol',da:'sol'}},
+  {l:'S',ph:{ku:'س',en:'S',ar:'س',de:'S',fr:'S',nl:'S',sv:'S',da:'S'},ex:'sêv',exM:{ku:'sêv',en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme',nl:'appel',sv:'äpple',da:'æble'}},
+  {l:'T',ph:{ku:'ت',en:'T',ar:'ت',de:'T',fr:'T',nl:'T',sv:'T',da:'T'},ex:'tav',exM:{ku:'tav',en:'sunshine',ar:'أشعة',de:'Sonnenschein',fr:'soleil',nl:'zonneschijn',sv:'solsken',da:'solskin'}},
+  {l:'V',ph:{ku:'ڤ',en:'V',ar:'ڤ',de:'W',fr:'V',nl:'V',sv:'V',da:'V'},ex:'av',exM:{ku:'av',en:'water',ar:'ماء',de:'Wasser',fr:'eau',nl:'water',sv:'vatten',da:'vand'}},
+  {l:'W',ph:{ku:'و',en:'W',ar:'و',de:'W',fr:'W',nl:'W',sv:'W',da:'W'},ex:'welat',exM:{ku:'welat',en:'homeland',ar:'وطن',de:'Heimat',fr:'patrie',nl:'vaderland',sv:'hemland',da:'hjemland'}},
+  {l:'X',ph:{ku:'خ',en:'KH (Bach)',ar:'خ',de:'CH (Bach)',fr:'J (fr.)',nl:'CH (Bach)',sv:'KH',da:'KH'},ex:'xanî',exM:{ku:'xanî',en:'home',ar:'بيت',de:'Haus',fr:'maison',nl:'huis',sv:'hem',da:'hjem'}},
+  {l:'Y',ph:{ku:'ي',en:'Y (yes)',ar:'ي',de:'J (ja)',fr:'Y',nl:'J (ja)',sv:'J',da:'J'},ex:'yek',exM:{ku:'yek',en:'one',ar:'واحد',de:'eins',fr:'un',nl:'één',sv:'ett',da:'en'}},
+  {l:'Z',ph:{ku:'ز',en:'Z',ar:'ز',de:'S (Rose)',fr:'Z',nl:'Z',sv:'S (ros)',da:'S (rose)'},ex:'zer',exM:{ku:'zer',en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune',nl:'geel',sv:'gul',da:'gul'}},
+  {l:'Ç',ph:{ku:'چ',en:'CH (church)',ar:'چ',de:'TSCH',fr:'TCH',nl:'TSJ',sv:'TJ',da:'TJ'},ex:'çav',exM:{ku:'çav',en:'eye',ar:'عين',de:'Auge',fr:'œil',nl:'oog',sv:'öga',da:'øje'}},
+  {l:'Ş',ph:{ku:'ش',en:'SH (shoe)',ar:'ش',de:'SCH',fr:'CH',nl:'SJ',sv:'SJ',da:'SJ'},ex:'şîr',exM:{ku:'şîr',en:'milk',ar:'حليب',de:'Milch',fr:'lait',nl:'melk',sv:'mjölk',da:'mælk'}}
 ];
 
 const NUMS=[
-  {n:0,ku:'sifir',ph:{en:'SIF-ir',ar:'سيفر',de:'SIF-ir',fr:'SIF-ir'}},
-  {n:1,ku:'yek',ph:{en:'YEHK',ar:'يَك',de:'JEK',fr:'YEK'}},
-  {n:2,ku:'du',ph:{en:'DOO',ar:'دو',de:'DUU',fr:'DOU'}},
-  {n:3,ku:'sê',ph:{en:'SAY',ar:'ساي',de:'SÄH',fr:'SÉ'}},
-  {n:4,ku:'çar',ph:{en:'CHAR',ar:'چار',de:'TSCHAR',fr:'TCHAR'}},
-  {n:5,ku:'pênc',ph:{en:'PENCH',ar:'پێنج',de:'PÄNSCH',fr:'PÉNJ'}},
-  {n:6,ku:'şeş',ph:{en:'SHESH',ar:'شيش',de:'SCHESCH',fr:'CHÈCH'}},
-  {n:7,ku:'heft',ph:{en:'HEFT',ar:'هَفت',de:'HEFT',fr:'HÈFT'}},
-  {n:8,ku:'heşt',ph:{en:'HESHT',ar:'هَشت',de:'HESCHT',fr:'HÈCHT'}},
-  {n:9,ku:'neh',ph:{en:'NEH',ar:'نَه',de:'NEH',fr:'NÉ'}},
-  {n:10,ku:'deh',ph:{en:'DEH',ar:'دَه',de:'DEH',fr:'DÈH'}},
-  {n:11,ku:'yazda',ph:{en:'YAZ-da',ar:'يازدا',de:'JAZ-da',fr:'YAZ-da'}},
-  {n:12,ku:'dozde',ph:{en:'DOZ-de',ar:'دۆزده',de:'DOZ-de',fr:'DOZ-de'}},
-  {n:13,ku:'sîzde',ph:{en:'SEEZ-de',ar:'سيزده',de:'SIIZ-de',fr:'SIZ-de'}},
-  {n:14,ku:'çardeh',ph:{en:'CHAR-deh',ar:'چاردَه',de:'TSCHAR-deh',fr:'TCHAR-deh'}},
-  {n:15,ku:'pazdeh',ph:{en:'PAZ-deh',ar:'پازدَه',de:'PAZ-deh',fr:'PAZ-deh'}},
-  {n:16,ku:'şazde',ph:{en:'SHAZ-de',ar:'شازده',de:'SCHAZ-de',fr:'CHAZ-de'}},
-  {n:17,ku:'hefdeh',ph:{en:'HEF-deh',ar:'هَفدَه',de:'HEF-deh',fr:'HEF-deh'}},
-  {n:18,ku:'hejde',ph:{en:'HEJ-de',ar:'هَجده',de:'HEJ-de',fr:'HEJ-de'}},
-  {n:19,ku:'nozde',ph:{en:'NOZ-de',ar:'نۆزده',de:'NOZ-de',fr:'NOZ-de'}},
-  {n:20,ku:'bîst',ph:{en:'BEEST',ar:'بيست',de:'BIIST',fr:'BIST'}},
-  {n:30,ku:'sî',ph:{en:'SEE',ar:'سي',de:'SII',fr:'SI'}},
-  {n:40,ku:'çil',ph:{en:'CHIL',ar:'چل',de:'TSCHIL',fr:'TCHIL'}},
-  {n:50,ku:'pêncî',ph:{en:'PENCH-ee',ar:'پێنجي',de:'PÄNSCH-ii',fr:'PÉNJ-i'}},
-  {n:60,ku:'şêst',ph:{en:'SHAYST',ar:'شێست',de:'SCHÄST',fr:'CHÈST'}},
-  {n:70,ku:'heftê',ph:{en:'HEF-tay',ar:'هَفتێ',de:'HEF-tä',fr:'HEF-té'}},
-  {n:80,ku:'heştê',ph:{en:'HESH-tay',ar:'هَشتێ',de:'HESCHT-ä',fr:'HÈCHT-é'}},
-  {n:90,ku:'not',ph:{en:'NOHT',ar:'نۆت',de:'NOT',fr:'NOT'}},
-  {n:100,ku:'sed',ph:{en:'SED',ar:'سَد',de:'SED',fr:'SED'}}
+  {n:0,ku:'sifir',ph:{ku:'SIF-ir',en:'SIF-ir',ar:'سيفر',de:'SIF-ir',fr:'SIF-ir',nl:'SIF-ir',sv:'SIF-ir',da:'SIF-ir'}},
+  {n:1,ku:'yek',ph:{ku:'YEK',en:'YEHK',ar:'يَك',de:'JEK',fr:'YEK',nl:'YEK',sv:'YEK',da:'YEK'}},
+  {n:2,ku:'du',ph:{ku:'DU',en:'DOO',ar:'دو',de:'DUU',fr:'DOU',nl:'DU',sv:'DU',da:'DU'}},
+  {n:3,ku:'sê',ph:{ku:'SÊ',en:'SAY',ar:'ساي',de:'SÄH',fr:'SÉ',nl:'SAY',sv:'SÄ',da:'SÆ'}},
+  {n:4,ku:'çar',ph:{ku:'ÇAR',en:'CHAR',ar:'چار',de:'TSCHAR',fr:'TCHAR',nl:'TSJAR',sv:'TJAR',da:'TJAR'}},
+  {n:5,ku:'pênc',ph:{ku:'PÊNC',en:'PENCH',ar:'پێنج',de:'PÄNSCH',fr:'PÉNJ',nl:'PENTSJ',sv:'PÄNJ',da:'PÆNJ'}},
+  {n:6,ku:'şeş',ph:{ku:'ŞEŞ',en:'SHESH',ar:'شيش',de:'SCHESCH',fr:'CHÈCH',nl:'SJÈSJ',sv:'SJESCH',da:'SJESCH'}},
+  {n:7,ku:'heft',ph:{ku:'HEFT',en:'HEFT',ar:'هَفت',de:'HEFT',fr:'HÈFT',nl:'HEFT',sv:'HEFT',da:'HEFT'}},
+  {n:8,ku:'heşt',ph:{ku:'HEŞT',en:'HESHT',ar:'هَشت',de:'HESCHT',fr:'HÈCHT',nl:'HÈSCHT',sv:'HESCHT',da:'HESCHT'}},
+  {n:9,ku:'neh',ph:{ku:'NEH',en:'NEH',ar:'نَه',de:'NEH',fr:'NÉ',nl:'NEH',sv:'NEH',da:'NEH'}},
+  {n:10,ku:'deh',ph:{ku:'DEH',en:'DEH',ar:'دَه',de:'DEH',fr:'DÈH',nl:'DEH',sv:'DEH',da:'DEH'}},
+  {n:11,ku:'yazda',ph:{ku:'YAZ-da',en:'YAZ-da',ar:'يازدا',de:'JAZ-da',fr:'YAZ-da',nl:'YAZ-da',sv:'YAZ-da',da:'YAZ-da'}},
+  {n:12,ku:'dozde',ph:{ku:'DOZ-de',en:'DOZ-de',ar:'دۆزده',de:'DOZ-de',fr:'DOZ-de',nl:'DOZ-de',sv:'DOZ-de',da:'DOZ-de'}},
+  {n:13,ku:'sîzde',ph:{ku:'SIIZ-de',en:'SEEZ-de',ar:'سيزده',de:'SIIZ-de',fr:'SIZ-de',nl:'SIIZ-de',sv:'SIIZ-de',da:'SIIZ-de'}},
+  {n:14,ku:'çardeh',ph:{ku:'ÇAR-deh',en:'CHAR-deh',ar:'چاردَه',de:'TSCHAR-deh',fr:'TCHAR-deh',nl:'TSJAR-deh',sv:'TJAR-deh',da:'TJAR-deh'}},
+  {n:15,ku:'pazdeh',ph:{ku:'PAZ-deh',en:'PAZ-deh',ar:'پازدَه',de:'PAZ-deh',fr:'PAZ-deh',nl:'PAZ-deh',sv:'PAZ-deh',da:'PAZ-deh'}},
+  {n:16,ku:'şazde',ph:{ku:'ŞAZ-de',en:'SHAZ-de',ar:'شازده',de:'SCHAZ-de',fr:'CHAZ-de',nl:'SJAZ-de',sv:'SJAZ-de',da:'SJAZ-de'}},
+  {n:17,ku:'hefdeh',ph:{ku:'HEF-deh',en:'HEF-deh',ar:'هَفدَه',de:'HEF-deh',fr:'HEF-deh',nl:'HEF-deh',sv:'HEF-deh',da:'HEF-deh'}},
+  {n:18,ku:'hejde',ph:{ku:'HEJ-de',en:'HEJ-de',ar:'هَجده',de:'HEJ-de',fr:'HEJ-de',nl:'HEJ-de',sv:'HEJ-de',da:'HEJ-de'}},
+  {n:19,ku:'nozde',ph:{ku:'NOZ-de',en:'NOZ-de',ar:'نۆزده',de:'NOZ-de',fr:'NOZ-de',nl:'NOZ-de',sv:'NOZ-de',da:'NOZ-de'}},
+  {n:20,ku:'bîst',ph:{ku:'BIIST',en:'BEEST',ar:'بيست',de:'BIIST',fr:'BIST',nl:'BIIST',sv:'BIIST',da:'BIIST'}},
+  {n:30,ku:'sî',ph:{ku:'SII',en:'SEE',ar:'سي',de:'SII',fr:'SI',nl:'SII',sv:'SII',da:'SII'}},
+  {n:40,ku:'çil',ph:{ku:'ÇIL',en:'CHIL',ar:'چل',de:'TSCHIL',fr:'TCHIL',nl:'TSJIL',sv:'TJIL',da:'TJIL'}},
+  {n:50,ku:'pêncî',ph:{ku:'PÊNC-î',en:'PENCH-ee',ar:'پێنجي',de:'PÄNSCH-ii',fr:'PÉNJ-i',nl:'PENTSJ-ie',sv:'PÄNJ-i',da:'PÆNJ-i'}},
+  {n:60,ku:'şêst',ph:{ku:'ŞÊST',en:'SHAYST',ar:'شێست',de:'SCHÄST',fr:'CHÈST',nl:'SJÈST',sv:'SJESCH',da:'SJESCH'}},
+  {n:70,ku:'heftê',ph:{ku:'HEF-tê',en:'HEF-tay',ar:'هَفتێ',de:'HEF-tä',fr:'HEF-té',nl:'HEF-tay',sv:'HEF-tä',da:'HEF-tä'}},
+  {n:80,ku:'heştê',ph:{ku:'HEŞT-ê',en:'HESH-tay',ar:'هَشتێ',de:'HESCHT-ä',fr:'HÈCHT-é',nl:'HÈSCHT-ay',sv:'HESCHT-ä',da:'HESCHT-ä'}},
+  {n:90,ku:'not',ph:{ku:'NOT',en:'NOHT',ar:'نۆت',de:'NOT',fr:'NOT',nl:'NOT',sv:'NOT',da:'NOT'}},
+  {n:100,ku:'sed',ph:{ku:'SED',en:'SED',ar:'سَد',de:'SED',fr:'SED',nl:'SED',sv:'SED',da:'SED'}}
 ];
 
 const UNITS=[
-  {id:'greet',icon:'👋',name:{en:'Greetings',ar:'التحيات',de:'Begrüßungen',fr:'Salutations'},free:true,words:[
-    {ku:'Silav',em:'👋',tr:{en:'Hello',ar:'مرحبا',de:'Hallo',fr:'Salut'},ph:{en:'si-LAV',ar:'سي‑لاڤ',de:'si-LAAW',fr:'si-LAV'}},
-    {ku:'Roj baş',em:'☀️',tr:{en:'Good day',ar:'يوم جيد',de:'Guten Tag',fr:'Bonne journée'},ph:{en:'roj BASH',ar:'روج باش',de:'roj BASCH',fr:'roj BACH'}},
-    {ku:'Spas',em:'🙏',tr:{en:'Thanks',ar:'شكراً',de:'Danke',fr:'Merci'},ph:{en:'SPAS',ar:'سپاس',de:'SPAS',fr:'SPAS'}},
-    {ku:'Erê',em:'✅',tr:{en:'Yes',ar:'نعم',de:'Ja',fr:'Oui'},ph:{en:'eh-RAY',ar:'ئَرێ',de:'eh-RE',fr:'eh-RÉ'}},
-    {ku:'Na',em:'❌',tr:{en:'No',ar:'لا',de:'Nein',fr:'Non'},ph:{en:'NA',ar:'نا',de:'NA',fr:'NA'}},
-    {ku:'Baş im',em:'😊',tr:{en:"I'm fine",ar:'أنا بخير',de:"Mir geht's gut",fr:'Je vais bien'},ph:{en:'BASH im',ar:'باش ئيم',de:'BASCH im',fr:'BACH im'}},
-    {ku:'Çawanî?',em:'🤔',tr:{en:'How are you?',ar:'كيف حالك؟',de:"Wie geht's?",fr:'Comment ça va?'},ph:{en:'cha-WA-ni',ar:'چاواني',de:'tscha-WA-ni',fr:'tcha-WA-ni'}},
-    {ku:'Bi xêr hatî',em:'🌹',tr:{en:'Welcome',ar:'أهلاً وسهلاً',de:'Willkommen',fr:'Bienvenue'},ph:{en:'bi-KHAYR ha-ti',ar:'بي‑خير هاتي',de:'bi-CHAYR ha-ti',fr:'bi-KÈYR ha-ti'}},
-    {ku:'Bi xatirê te',em:'🚶',tr:{en:'Goodbye',ar:'مع السلامة',de:'Auf Wiedersehen',fr:'Au revoir'},ph:{en:'bi-kha-ti-RAY te',ar:'بي‑خاتيرێ ته',de:'bi-cha-ti-RE te',fr:'bi-kha-ti-RÉ te'}}
+  {id:'greet',icon:'👋',name:{ku:'Silav û Rêzgirtin',en:'Greetings',ar:'التحيات',de:'Begrüßungen',fr:'Salutations',nl:'Begroetingen',sv:'Hälsningar',da:'Hilsener'},free:true,words:[
+    {ku:'Silav',em:'👋',tr:{ku:'Merheba',en:'Hello',ar:'مرحبا',de:'Hallo',fr:'Salut',nl:'Hallo',sv:'Hej',da:'Hej'},ph:{ku:'si-LAV',en:'si-LAV',ar:'سي‑لاڤ',de:'si-LAAW',fr:'si-LAV',nl:'si-LAV',sv:'si-LAV',da:'si-LAV'}},
+    {ku:'Roj baş',em:'☀️',tr:{ku:'Rojbaş',en:'Good day',ar:'يوم جيد',de:'Guten Tag',fr:'Bonne journée',nl:'Goedendag',sv:'God dag',da:'God dag'},ph:{ku:'roj-BASCH',en:'roj BASH',ar:'روج باش',de:'roj BASCH',fr:'roj BACH',nl:'roj BASH',sv:'roj BASH',da:'roj BASH'}},
+    {ku:'Spas',em:'🙏',tr:{ku:'Spas',en:'Thanks',ar:'شكراً',de:'Danke',fr:'Merci',nl:'Bedankt',sv:'Tack',da:'Tak'},ph:{ku:'SPAS',en:'SPAS',ar:'سپاس',de:'SPAS',fr:'SPAS',nl:'SPAS',sv:'SPAS',da:'SPAS'}},
+    {ku:'Erê',em:'✅',tr:{ku:'Erê',en:'Yes',ar:'نعم',de:'Ja',fr:'Oui',nl:'Ja',sv:'Ja',da:'Ja'},ph:{ku:'eh-RÊ',en:'eh-RAY',ar:'ئَرێ',de:'eh-RE',fr:'eh-RÉ',nl:'eh-RAY',sv:'eh-RÄ',da:'eh-RÆ'}},
+    {ku:'Na',em:'❌',tr:{ku:'Na',en:'No',ar:'لا',de:'Nein',fr:'Non',nl:'Nee',sv:'Nej',da:'Nej'},ph:{ku:'NA',en:'NA',ar:'نا',de:'NA',fr:'NA',nl:'NA',sv:'NA',da:'NA'}},
+    {ku:'Baş im',em:'😊',tr:{ku:'Baş im',en:"I'm fine",ar:'أنا بخير',de:"Mir geht's gut",fr:'Je vais bien',nl:'Ik ben goed',sv:'Jag mår bra',da:'Jeg har det godt'},ph:{ku:'BASH-im',en:'BASH im',ar:'باش ئيم',de:'BASCH im',fr:'BACH im',nl:'BASH im',sv:'BASH im',da:'BASH im'}},
+    {ku:'Çawanî?',em:'🤔',tr:{ku:'Çawanî?',en:'How are you?',ar:'كيف حالك؟',de:"Wie geht's?",fr:'Comment ça va?',nl:'Hoe gaat het?',sv:'Hur mår du?',da:'Hvordan har du det?'},ph:{ku:'ça-WA-nî',en:'cha-WA-ni',ar:'چاواني',de:'tscha-WA-ni',fr:'tcha-WA-ni',nl:'tsja-WA-ni',sv:'tsja-WA-ni',da:'tsja-WA-ni'}},
+    {ku:'Bi xêr hatî',em:'🌹',tr:{ku:'Bi xêr hatî',en:'Welcome',ar:'أهلاً وسهلاً',de:'Willkommen',fr:'Bienvenue',nl:'Welkom',sv:'Välkommen',da:'Velkommen'},ph:{ku:'bi-XÊYR ha-tî',en:'bi-KHAYR ha-ti',ar:'بي‑خير هاتي',de:'bi-CHAYR ha-ti',fr:'bi-KÈYR ha-ti',nl:'bi-KHAYR ha-ti',sv:'bi-KHAYR ha-ti',da:'bi-KHAYR ha-ti'}},
+    {ku:'Bi xatirê te',em:'🚶',tr:{ku:'Xatirê te',en:'Goodbye',ar:'مع السلامة',de:'Auf Wiedersehen',fr:'Au revoir',nl:'Tot ziens',sv:'Hej då',da:'Farvel'},ph:{ku:'bi-xa-ti-RÊ-te',en:'bi-kha-ti-RAY te',ar:'بي‑خاتيرێ ته',de:'bi-cha-ti-RE te',fr:'bi-kha-ti-RÉ te',nl:'bi-kha-ti-RAY te',sv:'bi-kha-ti-RAY te',da:'bi-kha-ti-RAY te'}}
   ]},
-  {id:'family',icon:'👨‍👩‍👧',name:{en:'Family',ar:'العائلة',de:'Familie',fr:'Famille'},free:false,words:[
-    {ku:'dê',em:'👩',tr:{en:'mother',ar:'أم',de:'Mutter',fr:'mère'},ph:{en:'DAY',ar:'داي',de:'DÄ',fr:'DÉ'}},
-    {ku:'bav',em:'👨',tr:{en:'father',ar:'أب',de:'Vater',fr:'père'},ph:{en:'BAV',ar:'باڤ',de:'BAW',fr:'BAV'}},
-    {ku:'bira',em:'👦',tr:{en:'brother',ar:'أخ',de:'Bruder',fr:'frère'},ph:{en:'BI-ra',ar:'بيرا',de:'BI-ra',fr:'BI-ra'}},
-    {ku:'xwişk',em:'👧',tr:{en:'sister',ar:'أخت',de:'Schwester',fr:'sœur'},ph:{en:'KHWISHK',ar:'خويشك',de:'CHWISCHK',fr:'KHWICHK'}},
-    {ku:'kal',em:'👴',tr:{en:'grandfather',ar:'جد',de:'Opa',fr:'grand-père'},ph:{en:'KAL',ar:'كال',de:'KAL',fr:'KAL'}},
-    {ku:'dapîr',em:'👵',tr:{en:'grandmother',ar:'جدة',de:'Oma',fr:'grand-mère'},ph:{en:'da-PEER',ar:'داپير',de:'da-PIIR',fr:'da-PIR'}},
-    {ku:'zarok',em:'🧒',tr:{en:'child',ar:'طفل',de:'Kind',fr:'enfant'},ph:{en:'ZA-rok',ar:'زارۆك',de:'ZA-rok',fr:'ZA-rok'}},
-    {ku:'malbat',em:'👨‍👩‍👧‍👦',tr:{en:'family',ar:'عائلة',de:'Familie',fr:'famille'},ph:{en:'MAL-bat',ar:'مالبات',de:'MAL-bat',fr:'MAL-bat'}}
+  {id:'family',icon:'👨‍👩‍👧',name:{ku:'Malbat',en:'Family',ar:'العائلة',de:'Familie',fr:'Famille',nl:'Familie',sv:'Familj',da:'Familie'},free:false,words:[
+    {ku:'dê',em:'👩',tr:{ku:'dê',en:'mother',ar:'أم',de:'Mutter',fr:'mère',nl:'moeder',sv:'mamma',da:'mor'},ph:{ku:'DÊ',en:'DAY',ar:'داي',de:'DÄ',fr:'DÉ',nl:'DAY',sv:'DÄ',da:'DÆ'}},
+    {ku:'bav',em:'👨',tr:{ku:'bav',en:'father',ar:'أب',de:'Vater',fr:'père',nl:'vader',sv:'far',da:'far'},ph:{ku:'BAV',en:'BAV',ar:'باڤ',de:'BAW',fr:'BAV',nl:'BAV',sv:'BAV',da:'BAV'}},
+    {ku:'bira',em:'👦',tr:{ku:'bira',en:'brother',ar:'أخ',de:'Bruder',fr:'frère',nl:'broer',sv:'bror',da:'bror'},ph:{ku:'BI-ra',en:'BI-ra',ar:'بيرا',de:'BI-ra',fr:'BI-ra',nl:'BI-ra',sv:'BI-ra',da:'BI-ra'}},
+    {ku:'xwişk',em:'👧',tr:{ku:'xwişk',en:'sister',ar:'أخت',de:'Schwester',fr:'sœur',nl:'zus',sv:'syster',da:'søster'},ph:{ku:'XWIŞK',en:'KHWISHK',ar:'خويشك',de:'CHWISCHK',fr:'KHWICHK',nl:'KHWISHK',sv:'KHWISHK',da:'KHWISHK'}},
+    {ku:'kal',em:'👴',tr:{ku:'kal',en:'grandfather',ar:'جد',de:'Opa',fr:'grand-père',nl:'opa',sv:'morfar',da:'bedstefar'},ph:{ku:'KAL',en:'KAL',ar:'كال',de:'KAL',fr:'KAL',nl:'KAL',sv:'KAL',da:'KAL'}},
+    {ku:'dapîr',em:'👵',tr:{ku:'dapîr',en:'grandmother',ar:'جدة',de:'Oma',fr:'grand-mère',nl:'oma',sv:'mormor',da:'bedstemor'},ph:{ku:'da-PIIR',en:'da-PEER',ar:'داپير',de:'da-PIIR',fr:'da-PIR',nl:'da-PEER',sv:'da-PIIR',da:'da-PIIR'}},
+    {ku:'zarok',em:'🧒',tr:{ku:'zarok',en:'child',ar:'طفل',de:'Kind',fr:'enfant',nl:'kind',sv:'barn',da:'barn'},ph:{ku:'ZA-rok',en:'ZA-rok',ar:'زارۆك',de:'ZA-rok',fr:'ZA-rok',nl:'ZA-rok',sv:'ZA-rok',da:'ZA-rok'}},
+    {ku:'malbat',em:'👨‍👩‍👧‍👦',tr:{ku:'malbat',en:'family',ar:'عائلة',de:'Familie',fr:'famille',nl:'familie',sv:'familj',da:'familie'},ph:{ku:'MAL-bat',en:'MAL-bat',ar:'مالبات',de:'MAL-bat',fr:'MAL-bat',nl:'MAL-bat',sv:'MAL-bat',da:'MAL-bat'}}
   ]},
-  {id:'house',icon:'🏠',name:{en:'House',ar:'البيت',de:'Haus',fr:'Maison'},free:false,words:[
-    {ku:'mal',em:'🏠',tr:{en:'house',ar:'بيت',de:'Haus',fr:'maison'},ph:{en:'MAL',ar:'مال',de:'MAL',fr:'MAL'}},
-    {ku:'derî',em:'🚪',tr:{en:'door',ar:'باب',de:'Tür',fr:'porte'},ph:{en:'deh-REE',ar:'دەري',de:'deh-RII',fr:'deh-RI'}},
-    {ku:'pencere',em:'🪟',tr:{en:'window',ar:'نافذة',de:'Fenster',fr:'fenêtre'},ph:{en:'PEN-je-re',ar:'پەنجەرە',de:'PEN-je-re',fr:'PEN-je-re'}},
-    {ku:'mase',em:'🍽️',tr:{en:'table',ar:'طاولة',de:'Tisch',fr:'table'},ph:{en:'MA-se',ar:'ماسە',de:'MA-se',fr:'MA-se'}},
-    {ku:'kursî',em:'🪑',tr:{en:'chair',ar:'كرسي',de:'Stuhl',fr:'chaise'},ph:{en:'KOOR-see',ar:'كورسي',de:'KUUR-sii',fr:'KOUR-si'}},
-    {ku:'text',em:'🛏️',tr:{en:'bed',ar:'سرير',de:'Bett',fr:'lit'},ph:{en:'TEKHT',ar:'تەخت',de:'TEKHT',fr:'TÈKHT'}},
-    {ku:'av',em:'💧',tr:{en:'water',ar:'ماء',de:'Wasser',fr:'eau'},ph:{en:'AV',ar:'اڤ',de:'AW',fr:'AV'}},
-    {ku:'nan',em:'🍞',tr:{en:'bread',ar:'خبز',de:'Brot',fr:'pain'},ph:{en:'NAN',ar:'نان',de:'NAN',fr:'NAN'}}
+  {id:'house',icon:'🏠',name:{ku:'Mal',en:'House',ar:'البيت',de:'Haus',fr:'Maison',nl:'Huis',sv:'Hus',da:'Hus'},free:false,words:[
+    {ku:'mal',em:'🏠',tr:{ku:'mal',en:'house',ar:'بيت',de:'Haus',fr:'maison',nl:'huis',sv:'hus',da:'hus'},ph:{ku:'MAL',en:'MAL',ar:'مال',de:'MAL',fr:'MAL',nl:'MAL',sv:'MAL',da:'MAL'}},
+    {ku:'derî',em:'🚪',tr:{ku:'derî',en:'door',ar:'باب',de:'Tür',fr:'porte',nl:'deur',sv:'dörr',da:'dør'},ph:{ku:'de-RÎ',en:'deh-REE',ar:'دەري',de:'deh-RII',fr:'deh-RI',nl:'deh-RI',sv:'deh-RI',da:'deh-RI'}},
+    {ku:'pencere',em:'🪟',tr:{ku:'pencere',en:'window',ar:'نافذة',de:'Fenster',fr:'fenêtre',nl:'raam',sv:'fönster',da:'vindue'},ph:{ku:'PEN-je-re',en:'PEN-je-re',ar:'پەنجەرە',de:'PEN-je-re',fr:'PEN-je-re',nl:'PEN-je-re',sv:'PEN-je-re',da:'PEN-je-re'}},
+    {ku:'mase',em:'🍽️',tr:{ku:'mase',en:'table',ar:'طاولة',de:'Tisch',fr:'table',nl:'tafel',sv:'bord',da:'bord'},ph:{ku:'MA-se',en:'MA-se',ar:'ماسە',de:'MA-se',fr:'MA-se',nl:'MA-se',sv:'MA-se',da:'MA-se'}},
+    {ku:'kursî',em:'🪑',tr:{ku:'kursî',en:'chair',ar:'كرسي',de:'Stuhl',fr:'chaise',nl:'stoel',sv:'stol',da:'stol'},ph:{ku:'kur-SÎ',en:'KOOR-see',ar:'كورسي',de:'KUUR-sii',fr:'KOUR-si',nl:'KOOR-si',sv:'KUUR-si',da:'KUUR-si'}},
+    {ku:'text',em:'🛏️',tr:{ku:'text',en:'bed',ar:'سرير',de:'Bett',fr:'lit',nl:'bed',sv:'säng',da:'seng'},ph:{ku:'TEXT',en:'TEKHT',ar:'تەخت',de:'TEKHT',fr:'TÈKHT',nl:'TEKHT',sv:'TEKHT',da:'TEKHT'}},
+    {ku:'av',em:'💧',tr:{ku:'av',en:'water',ar:'ماء',de:'Wasser',fr:'eau',nl:'water',sv:'vatten',da:'vand'},ph:{ku:'AV',en:'AV',ar:'اڤ',de:'AW',fr:'AV',nl:'AV',sv:'AV',da:'AV'}},
+    {ku:'nan',em:'🍞',tr:{ku:'nan',en:'bread',ar:'خبز',de:'Brot',fr:'pain',nl:'brood',sv:'bröd',da:'brød'},ph:{ku:'NAN',en:'NAN',ar:'نان',de:'NAN',fr:'NAN',nl:'NAN',sv:'NAN',da:'NAN'}}
   ]},
-  {id:'food',icon:'🍽️',name:{en:'Food',ar:'الطعام',de:'Essen',fr:'Nourriture'},free:false,words:[
-    {ku:'şîr',em:'🥛',tr:{en:'milk',ar:'حليب',de:'Milch',fr:'lait'},ph:{en:'SHEER',ar:'شير',de:'SCHIIR',fr:'CHIR'}},
-    {ku:'sêv',em:'🍎',tr:{en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme'},ph:{en:'SAYV',ar:'سيڤ',de:'SÄW',fr:'SÉV'}},
-    {ku:'hêk',em:'🥚',tr:{en:'egg',ar:'بيضة',de:'Ei',fr:'œuf'},ph:{en:'HAYK',ar:'هيك',de:'HÄK',fr:'HÈK'}},
-    {ku:'penîr',em:'🧀',tr:{en:'cheese',ar:'جبنة',de:'Käse',fr:'fromage'},ph:{en:'peh-NEER',ar:'پەنير',de:'peh-NIIR',fr:'peh-NIR'}},
-    {ku:'goşt',em:'🥩',tr:{en:'meat',ar:'لحم',de:'Fleisch',fr:'viande'},ph:{en:'GOSHT',ar:'گۆشت',de:'GOSCHT',fr:'GOCHT'}},
-    {ku:'çay',em:'🍵',tr:{en:'tea',ar:'شاي',de:'Tee',fr:'thé'},ph:{en:'CHAY',ar:'چاي',de:'TSCHAY',fr:'TCHAY'}},
-    {ku:'mast',em:'🥣',tr:{en:'yogurt',ar:'لبن',de:'Joghurt',fr:'yaourt'},ph:{en:'MAST',ar:'ماست',de:'MAST',fr:'MAST'}},
-    {ku:'birinc',em:'🍚',tr:{en:'rice',ar:'رز',de:'Reis',fr:'riz'},ph:{en:'bi-RINJ',ar:'بيرينج',de:'bi-RINJ',fr:'bi-RINJ'}}
+  {id:'food',icon:'🍽️',name:{ku:'Xwarîn',en:'Food',ar:'الطعام',de:'Essen',fr:'Nourriture',nl:'Eten',sv:'Mat',da:'Mad'},free:false,words:[
+    {ku:'şîr',em:'🥛',tr:{ku:'şîr',en:'milk',ar:'حليب',de:'Milch',fr:'lait',nl:'melk',sv:'mjölk',da:'mælk'},ph:{ku:'ŞIIR',en:'SHEER',ar:'شير',de:'SCHIIR',fr:'CHIR',nl:'SJIER',sv:'SJIR',da:'SJIR'}},
+    {ku:'sêv',em:'🍎',tr:{ku:'sêv',en:'apple',ar:'تفاحة',de:'Apfel',fr:'pomme',nl:'appel',sv:'äpple',da:'æble'},ph:{ku:'SÊIV',en:'SAYV',ar:'سيڤ',de:'SÄW',fr:'SÉV',nl:'SAYV',sv:'SÄIV',da:'SÆIV'}},
+    {ku:'hêk',em:'🥚',tr:{ku:'hêk',en:'egg',ar:'بيضة',de:'Ei',fr:'œuf',nl:'ei',sv:'ägg',da:'æg'},ph:{ku:'HÊIK',en:'HAYK',ar:'هيك',de:'HÄK',fr:'HÈK',nl:'HAYK',sv:'HÄIK',da:'HÆIK'}},
+    {ku:'penîr',em:'🧀',tr:{ku:'penîr',en:'cheese',ar:'جبنة',de:'Käse',fr:'fromage',nl:'kaas',sv:'ost',da:'ost'},ph:{ku:'pe-NIIR',en:'peh-NEER',ar:'پەنير',de:'peh-NIIR',fr:'peh-NIR',nl:'pe-NEER',sv:'pe-NIIR',da:'pe-NIIR'}},
+    {ku:'goşt',em:'🥩',tr:{ku:'goşt',en:'meat',ar:'لحم',de:'Fleisch',fr:'viande',nl:'vlees',sv:'kött',da:'kød'},ph:{ku:'GOŞT',en:'GOSHT',ar:'گۆشت',de:'GOSCHT',fr:'GOCHT',nl:'GOSHT',sv:'GOSHT',da:'GOSHT'}},
+    {ku:'çay',em:'🍵',tr:{ku:'çay',en:'tea',ar:'شاي',de:'Tee',fr:'thé',nl:'thee',sv:'te',da:'te'},ph:{ku:'ÇAY',en:'CHAY',ar:'چاي',de:'TSCHAY',fr:'TCHAY',nl:'TSJAY',sv:'TJAY',da:'TJAY'}},
+    {ku:'mast',em:'🥣',tr:{ku:'mast',en:'yogurt',ar:'لبن',de:'Joghurt',fr:'yaourt',nl:'yoghurt',sv:'yoghurt',da:'yoghurt'},ph:{ku:'MAST',en:'MAST',ar:'ماست',de:'MAST',fr:'MAST',nl:'MAST',sv:'MAST',da:'MAST'}},
+    {ku:'birinc',em:'🍚',tr:{ku:'birinc',en:'rice',ar:'رز',de:'Reis',fr:'riz',nl:'rijst',sv:'ris',da:'ris'},ph:{ku:'bi-RINC',en:'bi-RINJ',ar:'بيرينج',de:'bi-RINJ',fr:'bi-RINJ',nl:'bi-RINJ',sv:'bi-RINJ',da:'bi-RINJ'}}
   ]},
-  {id:'animals',icon:'🐾',name:{en:'Animals',ar:'الحيوانات',de:'Tiere',fr:'Animaux'},free:false,words:[
-    {ku:'kûçik',em:'🐕',tr:{en:'dog',ar:'كلب',de:'Hund',fr:'chien'},ph:{en:'KOO-chik',ar:'كوچك',de:'KUU-tschik',fr:'KOU-tchik'}},
-    {ku:'pisîk',em:'🐈',tr:{en:'cat',ar:'قطة',de:'Katze',fr:'chat'},ph:{en:'pi-SEEK',ar:'پيسيك',de:'pi-SIIK',fr:'pi-SIK'}},
-    {ku:'hesp',em:'🐎',tr:{en:'horse',ar:'حصان',de:'Pferd',fr:'cheval'},ph:{en:'HESP',ar:'هەسپ',de:'HESP',fr:'HESP'}},
-    {ku:'çûk',em:'🐦',tr:{en:'bird',ar:'طير',de:'Vogel',fr:'oiseau'},ph:{en:'CHOOK',ar:'چووك',de:'TSCHUUK',fr:'TCHOUK'}},
-    {ku:'masî',em:'🐟',tr:{en:'fish',ar:'سمكة',de:'Fisch',fr:'poisson'},ph:{en:'MA-see',ar:'ماسي',de:'MA-sii',fr:'MA-si'}},
-    {ku:'ga',em:'🐄',tr:{en:'cow',ar:'بقرة',de:'Kuh',fr:'vache'},ph:{en:'GA',ar:'گا',de:'GA',fr:'GA'}},
-    {ku:'fil',em:'🐘',tr:{en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant'},ph:{en:'FIL',ar:'فيل',de:'FIL',fr:'FIL'}},
-    {ku:'şêr',em:'🦁',tr:{en:'lion',ar:'أسد',de:'Löwe',fr:'lion'},ph:{en:'SHAYR',ar:'شير',de:'SCHÄYR',fr:'CHÈR'}}
+  {id:'animals',icon:'🐾',name:{ku:'Ajal',en:'Animals',ar:'الحيوانات',de:'Tiere',fr:'Animaux',nl:'Dieren',sv:'Djur',da:'Dyr'},free:false,words:[
+    {ku:'kûçik',em:'🐕',tr:{ku:'kûçik',en:'dog',ar:'كلب',de:'Hund',fr:'chien',nl:'hond',sv:'hund',da:'hund'},ph:{ku:'KÛ-çik',en:'KOO-chik',ar:'كوچك',de:'KUU-tschik',fr:'KOU-tchik',nl:'KOO-tsjik',sv:'KUU-tjik',da:'KUU-tjik'}},
+    {ku:'pisîk',em:'🐈',tr:{ku:'pisîk',en:'cat',ar:'قطة',de:'Katze',fr:'chat',nl:'kat',sv:'katt',da:'kat'},ph:{ku:'pi-SIIK',en:'pi-SEEK',ar:'پيسيك',de:'pi-SIIK',fr:'pi-SIK',nl:'pi-SEEK',sv:'pi-SIIK',da:'pi-SIIK'}},
+    {ku:'hesp',em:'🐎',tr:{ku:'hesp',en:'horse',ar:'حصان',de:'Pferd',fr:'cheval',nl:'paard',sv:'häst',da:'hest'},ph:{ku:'HESP',en:'HESP',ar:'هەسپ',de:'HESP',fr:'HESP',nl:'HESP',sv:'HESP',da:'HESP'}},
+    {ku:'çûk',em:'🐦',tr:{ku:'çûk',en:'bird',ar:'طير',de:'Vogel',fr:'oiseau',nl:'vogel',sv:'fågel',da:'fugl'},ph:{ku:'ÇÛIK',en:'CHOOK',ar:'چووك',de:'TSCHUUK',fr:'TCHOUK',nl:'TSJOEK',sv:'TJUUK',da:'TJUUK'}},
+    {ku:'masî',em:'🐟',tr:{ku:'masî',en:'fish',ar:'سمكة',de:'Fisch',fr:'poisson',nl:'vis',sv:'fisk',da:'fisk'},ph:{ku:'MA-sî',en:'MA-see',ar:'ماسي',de:'MA-sii',fr:'MA-si',nl:'MA-si',sv:'MA-si',da:'MA-si'}},
+    {ku:'ga',em:'🐄',tr:{ku:'ga',en:'cow',ar:'بقرة',de:'Kuh',fr:'vache',nl:'koe',sv:'ko',da:'ko'},ph:{ku:'GA',en:'GA',ar:'گا',de:'GA',fr:'GA',nl:'GA',sv:'GA',da:'GA'}},
+    {ku:'fil',em:'🐘',tr:{ku:'fîl',en:'elephant',ar:'فيل',de:'Elefant',fr:'éléphant',nl:'olifant',sv:'elefant',da:'elefant'},ph:{ku:'FIIL',en:'FIL',ar:'فيل',de:'FIL',fr:'FIL',nl:'FIL',sv:'FIL',da:'FIL'}},
+    {ku:'şêr',em:'🦁',tr:{ku:'şêr',en:'lion',ar:'أسد',de:'Löwe',fr:'lion',nl:'leeuw',sv:'lejon',da:'løve'},ph:{ku:'ŞÊIR',en:'SHAYR',ar:'شير',de:'SCHÄYR',fr:'CHÈR',nl:'SHAYR',sv:'SHÄYR',da:'SHÆYR'}}
   ]},
-  {id:'colors',icon:'🎨',name:{en:'Colors',ar:'الألوان',de:'Farben',fr:'Couleurs'},free:false,words:[
-    {ku:'sor',em:'🔴',tr:{en:'red',ar:'أحمر',de:'rot',fr:'rouge'},ph:{en:'SOR',ar:'سۆر',de:'SOR',fr:'SOR'}},
-    {ku:'şîn',em:'🔵',tr:{en:'blue',ar:'أزرق',de:'blau',fr:'bleu'},ph:{en:'SHEEN',ar:'شين',de:'SCHIIN',fr:'CHIN'}},
-    {ku:'zer',em:'🟡',tr:{en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune'},ph:{en:'ZER',ar:'زەر',de:'SER',fr:'ZER'}},
-    {ku:'kesk',em:'🟢',tr:{en:'green',ar:'أخضر',de:'grün',fr:'vert'},ph:{en:'KESK',ar:'كەسك',de:'KESK',fr:'KESK'}},
-    {ku:'reş',em:'⚫',tr:{en:'black',ar:'أسود',de:'schwarz',fr:'noir'},ph:{en:'RESH',ar:'ريش',de:'RESCH',fr:'RÈCH'}},
-    {ku:'spî',em:'⚪',tr:{en:'white',ar:'أبيض',de:'weiß',fr:'blanc'},ph:{en:'SPEE',ar:'سپي',de:'SPII',fr:'SPI'}},
-    {ku:'mor',em:'🟣',tr:{en:'purple',ar:'بنفسجي',de:'lila',fr:'violet'},ph:{en:'MOR',ar:'مۆر',de:'MOR',fr:'MOR'}},
-    {ku:'porteqalî',em:'🟠',tr:{en:'orange',ar:'برتقالي',de:'orange',fr:'orange'},ph:{en:'por-te-QA-li',ar:'پۆرتەقالي',de:'por-te-QA-li',fr:'por-te-QA-li'}}
+  {id:'colors',icon:'🎨',name:{ku:'Reng',en:'Colors',ar:'الألوان',de:'Farben',fr:'Couleurs',nl:'Kleuren',sv:'Färger',da:'Farver'},free:false,words:[
+    {ku:'sor',em:'🔴',tr:{ku:'sor',en:'red',ar:'أحمر',de:'rot',fr:'rouge',nl:'rood',sv:'röd',da:'rød'},ph:{ku:'SOR',en:'SOR',ar:'سۆر',de:'SOR',fr:'SOR',nl:'SOR',sv:'SOR',da:'SOR'}},
+    {ku:'şîn',em:'🔵',tr:{ku:'şîn',en:'blue',ar:'أزرق',de:'blau',fr:'bleu',nl:'blauw',sv:'blå',da:'blå'},ph:{ku:'ŞIIN',en:'SHEEN',ar:'شين',de:'SCHIIN',fr:'CHIN',nl:'SJIIN',sv:'SJIN',da:'SJIN'}},
+    {ku:'zer',em:'🟡',tr:{ku:'zer',en:'yellow',ar:'أصفر',de:'gelb',fr:'jaune',nl:'geel',sv:'gul',da:'gul'},ph:{ku:'ZER',en:'ZER',ar:'زەر',de:'SER',fr:'ZER',nl:'ZER',sv:'SER',da:'SER'}},
+    {ku:'kesk',em:'🟢',tr:{ku:'kesk',en:'green',ar:'أخضر',de:'grün',fr:'vert',nl:'groen',sv:'grön',da:'grøn'},ph:{ku:'KESK',en:'KESK',ar:'كەسك',de:'KESK',fr:'KESK',nl:'KESK',sv:'KESK',da:'KESK'}},
+    {ku:'reş',em:'⚫',tr:{ku:'reş',en:'black',ar:'أسود',de:'schwarz',fr:'noir',nl:'zwart',sv:'svart',da:'sort'},ph:{ku:'REŞ',en:'RESH',ar:'ريش',de:'RESCH',fr:'RÈCH',nl:'RESJ',sv:'RESH',da:'RESH'}},
+    {ku:'spî',em:'⚪',tr:{ku:'spî',en:'white',ar:'أبيض',de:'weiß',fr:'blanc',nl:'wit',sv:'vit',da:'hvid'},ph:{ku:'SPIÎ',en:'SPEE',ar:'سپي',de:'SPII',fr:'SPI',nl:'SPIE',sv:'SPII',da:'SPII'}},
+    {ku:'mor',em:'🟣',tr:{ku:'mor',en:'purple',ar:'بنفسجي',de:'lila',fr:'violet',nl:'paars',sv:'lila',da:'lilla'},ph:{ku:'MOR',en:'MOR',ar:'مۆر',de:'MOR',fr:'MOR',nl:'MOR',sv:'MOR',da:'MOR'}},
+    {ku:'porteqalî',em:'🟠',tr:{ku:'porteqalî',en:'orange',ar:'برتقالي',de:'orange',fr:'orange',nl:'oranje',sv:'orange',da:'orange'},ph:{ku:'por-te-QA-lî',en:'por-te-QA-li',ar:'پۆرتەقالي',de:'por-te-QA-li',fr:'por-te-QA-li',nl:'por-te-QA-li',sv:'por-te-QA-li',da:'por-te-QA-li'}}
   ]},
-  {id:'body',icon:'🫀',name:{en:'Body',ar:'الجسم',de:'Körper',fr:'Corps'},free:false,words:[
-    {ku:'ser',em:'🗣️',tr:{en:'head',ar:'رأس',de:'Kopf',fr:'tête'},ph:{en:'SER',ar:'سەر',de:'SER',fr:'SER'}},
-    {ku:'çav',em:'👁️',tr:{en:'eye',ar:'عين',de:'Auge',fr:'œil'},ph:{en:'CHAV',ar:'چاڤ',de:'TSCHAW',fr:'TCHAV'}},
-    {ku:'guh',em:'👂',tr:{en:'ear',ar:'أذن',de:'Ohr',fr:'oreille'},ph:{en:'GUH',ar:'گوه',de:'GUH',fr:'GU'}},
-    {ku:'dev',em:'👄',tr:{en:'mouth',ar:'فم',de:'Mund',fr:'bouche'},ph:{en:'DEV',ar:'دەڤ',de:'DEW',fr:'DEV'}},
-    {ku:'poz',em:'👃',tr:{en:'nose',ar:'أنف',de:'Nase',fr:'nez'},ph:{en:'POZ',ar:'پۆز',de:'POZ',fr:'POZ'}},
-    {ku:'dest',em:'✋',tr:{en:'hand',ar:'يد',de:'Hand',fr:'main'},ph:{en:'DEST',ar:'دەست',de:'DEST',fr:'DEST'}},
-    {ku:'pê',em:'🦶',tr:{en:'foot',ar:'قدم',de:'Fuß',fr:'pied'},ph:{en:'PAY',ar:'پێ',de:'PÄ',fr:'PÉ'}},
-    {ku:'dil',em:'❤️',tr:{en:'heart',ar:'قلب',de:'Herz',fr:'cœur'},ph:{en:'DIL',ar:'دل',de:'DIL',fr:'DIL'}}
+  {id:'body',icon:'🫀',name:{ku:'Beden',en:'Body',ar:'الجسم',de:'Körper',fr:'Corps',nl:'Lichaam',sv:'Kropp',da:'Krop'},free:false,words:[
+    {ku:'ser',em:'🗣️',tr:{ku:'ser',en:'head',ar:'رأس',de:'Kopf',fr:'tête',nl:'hoofd',sv:'huvud',da:'hoved'},ph:{ku:'SER',en:'SER',ar:'سەر',de:'SER',fr:'SER',nl:'SER',sv:'SER',da:'SER'}},
+    {ku:'çav',em:'👁️',tr:{ku:'çav',en:'eye',ar:'عين',de:'Auge',fr:'œil',nl:'oog',sv:'öga',da:'øje'},ph:{ku:'ÇAV',en:'CHAV',ar:'چاڤ',de:'TSCHAW',fr:'TCHAV',nl:'TSJAV',sv:'TJAV',da:'TJAV'}},
+    {ku:'guh',em:'👂',tr:{ku:'guh',en:'ear',ar:'أذن',de:'Ohr',fr:'oreille',nl:'oor',sv:'öra',da:'øre'},ph:{ku:'GUH',en:'GUH',ar:'گوه',de:'GUH',fr:'GU',nl:'GUH',sv:'GUH',da:'GUH'}},
+    {ku:'dev',em:'👄',tr:{ku:'dev',en:'mouth',ar:'فم',de:'Mund',fr:'bouche',nl:'mond',sv:'mun',da:'mund'},ph:{ku:'DEV',en:'DEV',ar:'دەڤ',de:'DEW',fr:'DEV',nl:'DEV',sv:'DEV',da:'DEV'}},
+    {ku:'poz',em:'👃',tr:{ku:'poz',en:'nose',ar:'أنف',de:'Nase',fr:'nez',nl:'neus',sv:'näsa',da:'næse'},ph:{ku:'POZ',en:'POZ',ar:'پۆز',de:'POZ',fr:'POZ',nl:'POZ',sv:'POZ',da:'POZ'}},
+    {ku:'dest',em:'✋',tr:{ku:'dest',en:'hand',ar:'يد',de:'Hand',fr:'main',nl:'hand',sv:'hand',da:'hånd'},ph:{ku:'DEST',en:'DEST',ar:'دەست',de:'DEST',fr:'DEST',nl:'DEST',sv:'DEST',da:'DEST'}},
+    {ku:'pê',em:'🦶',tr:{ku:'pê',en:'foot',ar:'قدم',de:'Fuß',fr:'pied',nl:'voet',sv:'fot',da:'fod'},ph:{ku:'PÊ',en:'PAY',ar:'پێ',de:'PÄ',fr:'PÉ',nl:'PAY',sv:'PÄ',da:'PÆ'}},
+    {ku:'dil',em:'❤️',tr:{ku:'dil',en:'heart',ar:'قلب',de:'Herz',fr:'cœur',nl:'hart',sv:'hjärta',da:'hjerte'},ph:{ku:'DIL',en:'DIL',ar:'دل',de:'DIL',fr:'DIL',nl:'DIL',sv:'DIL',da:'DIL'}}
   ]},
-  {id:'weather',icon:'🌤️',name:{en:'Weather',ar:'الطقس',de:'Wetter',fr:'Météo'},free:false,words:[
-    {ku:'roj',em:'☀️',tr:{en:'sun',ar:'شمس',de:'Sonne',fr:'soleil'},ph:{en:'ROJ',ar:'رۆژ',de:'ROJ',fr:'ROJ'}},
-    {ku:'baran',em:'🌧️',tr:{en:'rain',ar:'مطر',de:'Regen',fr:'pluie'},ph:{en:'ba-RAN',ar:'باران',de:'ba-RAN',fr:'ba-RAN'}},
-    {ku:'berf',em:'❄️',tr:{en:'snow',ar:'ثلج',de:'Schnee',fr:'neige'},ph:{en:'BERF',ar:'بەرف',de:'BERF',fr:'BERF'}},
-    {ku:'ba',em:'🌬️',tr:{en:'wind',ar:'ريح',de:'Wind',fr:'vent'},ph:{en:'BA',ar:'با',de:'BA',fr:'BA'}},
-    {ku:'sibê',em:'🌅',tr:{en:'morning',ar:'صباح',de:'Morgen',fr:'matin'},ph:{en:'si-BAY',ar:'سيبێ',de:'si-BÄ',fr:'si-BÉ'}},
-    {ku:'êvar',em:'🌆',tr:{en:'evening',ar:'مساء',de:'Abend',fr:'soir'},ph:{en:'AY-var',ar:'ێڤار',de:'Ä-war',fr:'É-var'}},
-    {ku:'şev',em:'🌙',tr:{en:'night',ar:'ليل',de:'Nacht',fr:'nuit'},ph:{en:'SHEV',ar:'شەڤ',de:'SCHEW',fr:'CHEV'}},
-    {ku:'hewa',em:'🌤️',tr:{en:'weather',ar:'طقس',de:'Wetter',fr:'météo'},ph:{en:'HE-wa',ar:'هەوا',de:'HE-wa',fr:'HE-wa'}}
+  {id:'weather',icon:'🌤️',name:{ku:'Hewa û Dem',en:'Weather',ar:'الطقس',de:'Wetter',fr:'Météo',nl:'Weer',sv:'Väder',da:'Vejr'},free:false,words:[
+    {ku:'roj',em:'☀️',tr:{ku:'roj',en:'sun',ar:'شمس',de:'Sonne',fr:'soleil',nl:'zon',sv:'sol',da:'sol'},ph:{ku:'ROJ',en:'ROJ',ar:'رۆژ',de:'ROJ',fr:'ROJ',nl:'ROJ',sv:'ROJ',da:'ROJ'}},
+    {ku:'baran',em:'🌧️',tr:{ku:'baran',en:'rain',ar:'مطر',de:'Regen',fr:'pluie',nl:'regen',sv:'regn',da:'regn'},ph:{ku:'ba-RAN',en:'ba-RAN',ar:'باران',de:'ba-RAN',fr:'ba-RAN',nl:'ba-RAN',sv:'ba-RAN',da:'ba-RAN'}},
+    {ku:'berf',em:'❄️',tr:{ku:'berf',en:'snow',ar:'ثلج',de:'Schnee',fr:'neige',nl:'sneeuw',sv:'snö',da:'sne'},ph:{ku:'BERF',en:'BERF',ar:'بەرف',de:'BERF',fr:'BERF',nl:'BERF',sv:'BERF',da:'BERF'}},
+    {ku:'ba',em:'🌬️',tr:{ku:'ba',en:'wind',ar:'ريح',de:'Wind',fr:'vent',nl:'wind',sv:'vind',da:'vind'},ph:{ku:'BA',en:'BA',ar:'با',de:'BA',fr:'BA',nl:'BA',sv:'BA',da:'BA'}},
+    {ku:'sibê',em:'🌅',tr:{ku:'sibê',en:'morning',ar:'صباح',de:'Morgen',fr:'matin',nl:'ochtend',sv:'morgon',da:'morgen'},ph:{ku:'si-BÊ',en:'si-BAY',ar:'سيبێ',de:'si-BÄ',fr:'si-BÉ',nl:'si-BAY',sv:'si-BÄ',da:'si-BÆ'}},
+    {ku:'êvar',em:'🌆',tr:{ku:'êvar',en:'evening',ar:'مساء',de:'Abend',fr:'soir',nl:'avond',sv:'kväll',da:'aften'},ph:{ku:'ÊV-ar',en:'AY-var',ar:'ێڤار',de:'Ä-war',fr:'É-var',nl:'AY-var',sv:'Ä-var',da:'Æ-var'}},
+    {ku:'şev',em:'🌙',tr:{ku:'şev',en:'night',ar:'ليل',de:'Nacht',fr:'nuit',nl:'nacht',sv:'natt',da:'nat'},ph:{ku:'ŞEV',en:'SHEV',ar:'شەڤ',de:'SCHEW',fr:'CHEV',nl:'SJEW',sv:'SHEV',da:'SHEV'}},
+    {ku:'hewa',em:'🌤️',tr:{ku:'hewa',en:'weather',ar:'طقس',de:'Wetter',fr:'météo',nl:'weer',sv:'väder',da:'vejr'},ph:{ku:'HE-wa',en:'HE-wa',ar:'هەوا',de:'HE-wa',fr:'HE-wa',nl:'HE-wa',sv:'HE-wa',da:'HE-wa'}}
   ]}
 ];
 
@@ -320,18 +389,18 @@ const UNITS=[
    STATE
 ═══════════════════════════════════════ */
 const defState={
-  step:'lang',lang:'en',name:'',
+  step:'lang',lang:'ku',name:'',
   abc:0,num:0,vocUnit:null,vocWord:0,
   prog:{abc:0,num:0,voc:{}},
   quiz:{type:null,unitId:null,qs:[],cur:0,score:0},
-  user:null,isPremium:false,_v3:true
+  user:null,isPremium:false,_v4:true
 };
 
-const _raw=localStorage.getItem('roj3');
+const _raw=localStorage.getItem('roj4');
 let S=_raw?JSON.parse(_raw):{...defState};
-if(!S._v3){S={...defState,lang:S.lang||'en'};}
+if(!S._v4){S={...defState,lang:S.lang||'ku'};}
 
-function save(){localStorage.setItem('roj3',JSON.stringify(S));}
+function save(){localStorage.setItem('roj4',JSON.stringify(S));}
 
 /* ═══════════════════════════════════════
    HELPERS
@@ -355,9 +424,11 @@ function canAccess(type,id=null){
   if(type==='abc')return S.abc<FREE_ABC;
   if(type==='num')return S.num<FREE_NUM;
   if(type==='voc')return FREE_UNITS.includes(id);
-  if(type==='review')return false;
   return false;
 }
+function getLangTr(obj){return obj[S.lang]??obj.en??'';}
+function closeModal(){$('modal-root').innerHTML='';}
+window.closeModal=closeModal;
 
 /* ═══════════════════════════════════════
    AUTH
@@ -370,12 +441,8 @@ async function initAuth(){
     save();
   }
   sb.auth.onAuthStateChange(async(_,sess)=>{
-    if(sess?.user){
-      S.user=sess.user;
-      await checkPremium(sess.user.id);
-    } else {
-      S.user=null;S.isPremium=false;
-    }
+    if(sess?.user){S.user=sess.user;await checkPremium(sess.user.id);}
+    else{S.user=null;S.isPremium=false;}
     save();render();
   });
 }
@@ -383,11 +450,8 @@ async function initAuth(){
 async function checkPremium(userId){
   const{data}=await sb.from('subscriptions').select('status,current_period_end').eq('user_id',userId).single();
   if(data&&data.status==='active'){
-    const exp=new Date(data.current_period_end);
-    S.isPremium=exp>new Date();
-  } else {
-    S.isPremium=false;
-  }
+    S.isPremium=new Date(data.current_period_end)>new Date();
+  }else{S.isPremium=false;}
 }
 
 function showAuth(mode='login'){
@@ -402,14 +466,10 @@ function showAuth(mode='login'){
         <input id="ae" type="email" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;margin:6px 0 14px;">
         <label style="font-size:.85rem;font-weight:700;color:var(--ink2);">${T('password')}</label>
         <input id="ap" type="password" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;margin:6px 0 20px;">
-        <button onclick="doAuth('${mode}')" class="btn btn-sun" style="width:100%;padding:14px;font-size:1.05rem;border-radius:14px;margin-bottom:12px;">
-          ${mode==='login'?T('login'):T('signup')}
-        </button>
+        <button onclick="doAuth('${mode}')" class="btn btn-sun" style="width:100%;padding:14px;font-size:1.05rem;border-radius:14px;margin-bottom:12px;">${mode==='login'?T('login'):T('signup')}</button>
         <p style="text-align:center;font-size:.9rem;color:var(--ink2);">
           ${mode==='login'?T('authSwitch'):T('authSwitch2')}
-          <button onclick="showAuth('${mode==='login'?'signup':'login'}')" style="background:none;border:none;color:var(--sky);font-weight:700;cursor:pointer;font-family:inherit;">
-            ${mode==='login'?T('signup'):T('login')}
-          </button>
+          <button onclick="showAuth('${mode==='login'?'signup':'login'}')" style="background:none;border:none;color:var(--sky);font-weight:700;cursor:pointer;font-family:inherit;">${mode==='login'?T('signup'):T('login')}</button>
         </p>
       </div>
     </div>`;
@@ -423,32 +483,16 @@ async function doAuth(mode){
   let res;
   if(mode==='signup'){
     res=await sb.auth.signUp({email,password:pass,options:{data:{name:S.name}}});
-  } else {
+    if(!res.error){await sb.from('profiles').upsert({id:res.data.user.id,name:S.name,lang:S.lang},{onConflict:'id'});}
+  }else{
     res=await sb.auth.signInWithPassword({email,password:pass});
   }
-  if(res.error){
-    errEl.textContent=res.error.message;
-    errEl.style.display='block';
-    return;
-  }
-  if(mode==='signup'){
-    // Create profile
-    await sb.from('profiles').upsert({id:res.data.user.id,name:S.name,lang:S.lang},{onConflict:'id'});
-  }
-  closeModal();
-  render();
+  if(res.error){errEl.textContent=res.error.message;errEl.style.display='block';return;}
+  closeModal();render();
 }
 
-async function doLogout(){
-  await sb.auth.signOut();
-  S.user=null;S.isPremium=false;save();render();
-}
-
-function closeModal(){$('modal-root').innerHTML='';}
-window.closeModal=closeModal;
-window.showAuth=showAuth;
-window.doAuth=doAuth;
-window.doLogout=doLogout;
+async function doLogout(){await sb.auth.signOut();S.user=null;S.isPremium=false;save();render();}
+window.showAuth=showAuth;window.doAuth=doAuth;window.doLogout=doLogout;
 
 /* ═══════════════════════════════════════
    PAYMENT
@@ -461,27 +505,20 @@ function showUpgrade(){
         <div style="font-size:2.5rem;text-align:center;margin-bottom:8px;">🏆</div>
         <h2 style="text-align:center;font-size:1.4rem;margin-bottom:6px;">${T('premium')}</h2>
         <p style="text-align:center;color:var(--ink2);margin-bottom:24px;">${T('premiumSub')}</p>
-
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
-          <!-- YEARLY (highlighted) -->
           <div style="border:3px solid var(--gold);border-radius:18px;padding:18px;position:relative;">
-            <div style="position:absolute;top:-12px;${ar?'right':'left'}:50%;transform:translateX(${ar?'50%':'-50%'});background:var(--gold);color:#fff;border-radius:20px;padding:2px 14px;font-size:.8rem;font-weight:700;">${T('save')}</div>
+            <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;border-radius:20px;padding:2px 14px;font-size:.8rem;font-weight:700;">${T('save')}</div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div><div style="font-weight:700;font-size:1.1rem;">${T('yearly')}</div>
-                <div style="color:var(--ink2);font-size:.85rem;">€2.50${T('perMonth')}</div></div>
-              <div style="text-align:${ar?'left':'right'};">
-                <div style="font-size:1.6rem;font-weight:700;color:var(--sun2);">€29.99</div>
-                <div style="color:var(--ink2);font-size:.8rem;">${T('perYear')}</div></div></div>
+              <div><div style="font-weight:700;font-size:1.1rem;">${T('yearly')}</div><div style="color:var(--ink2);font-size:.85rem;">€2.50${T('perMonth')}</div></div>
+              <div><div style="font-size:1.6rem;font-weight:700;color:var(--sun2);">€29.99</div><div style="color:var(--ink2);font-size:.8rem;">${T('perYear')}</div></div>
+            </div>
             <button onclick="subscribe('${PRICE_YEARLY}')" class="btn btn-gold" style="width:100%;padding:12px;border-radius:12px;margin-top:12px;font-size:1rem;">${T('upgrade')}</button>
           </div>
-
-          <!-- MONTHLY -->
           <div style="border:2px solid var(--border);border-radius:18px;padding:18px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div><div style="font-weight:700;font-size:1.1rem;">${T('monthly')}</div></div>
-              <div style="text-align:${ar?'left':'right'};">
-                <div style="font-size:1.6rem;font-weight:700;">€4.99</div>
-                <div style="color:var(--ink2);font-size:.8rem;">${T('perMonth')}</div></div></div>
+              <div><div style="font-size:1.6rem;font-weight:700;">€4.99</div><div style="color:var(--ink2);font-size:.8rem;">${T('perMonth')}</div></div>
+            </div>
             <button onclick="subscribe('${PRICE_MONTHLY}')" class="btn btn-sun" style="width:100%;padding:12px;border-radius:12px;margin-top:12px;font-size:1rem;">${T('upgrade')}</button>
           </div>
         </div>
@@ -492,41 +529,201 @@ function showUpgrade(){
 
 async function subscribe(priceId){
   if(!S.user){closeModal();showAuth('signup');return;}
-  const btn=event.target;
-  btn.textContent='...';btn.disabled=true;
   try{
-    const res=await fetch('/api/create-checkout',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({priceId,userId:S.user.id,userEmail:S.user.email})
-    });
+    const res=await fetch('/api/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({priceId,userId:S.user.id,userEmail:S.user.email})});
     const{url}=await res.json();
     window.location.href=url;
-  }catch(e){
-    btn.textContent=T('upgrade');btn.disabled=false;
-    alert('Error: '+e.message);
-  }
+  }catch(e){alert('Error: '+e.message);}
+}
+window.showUpgrade=showUpgrade;window.subscribe=subscribe;
+
+/* ═══════════════════════════════════════
+   REVIEWS
+═══════════════════════════════════════ */
+async function loadReviews(){
+  const{data}=await sb.from('reviews').select('name,rating,comment,lang,created_at').order('created_at',{ascending:false}).limit(10);
+  return data||[];
 }
 
-window.showUpgrade=showUpgrade;
-window.subscribe=subscribe;
+function starsHtml(n,interactive=false){
+  let h='';
+  for(let i=1;i<=5;i++){
+    if(interactive){
+      h+=`<span class="star" onclick="rateThis(${i})" id="star-${i}">${i<=n?'⭐':'☆'}</span>`;
+    }else{
+      h+=`<span style="font-size:1rem;">${i<=n?'⭐':'☆'}</span>`;
+    }
+  }
+  return h;
+}
+
+async function rReviews(){
+  const{data}=await sb.from('reviews').select('id,name,rating,comment,lang,created_at').order('created_at',{ascending:false}).limit(50);
+  const reviews=data||[];
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:1.1rem;">⭐ ${T('reviews')} ${isAdmin()?'<span style="background:var(--purple);color:#fff;border-radius:8px;padding:2px 8px;font-size:.7rem;margin-${isAr()?"right":"left"}:4px;">Admin</span>':''}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:500px;margin:0 auto;padding:20px;">
+        ${S.user?`
+          <div class="card" style="padding:20px;margin-bottom:16px;">
+            <h3 style="font-weight:700;margin-bottom:12px;">${T('writeReview')}</h3>
+            <div style="margin-bottom:8px;">${T('yourRating')}:</div>
+            <div id="stars-select" style="font-size:2rem;margin-bottom:12px;">${starsHtml(0,true)}</div>
+            <textarea id="review-text" placeholder="${T('commentPlaceholder')}" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;min-height:80px;resize:none;outline:none;background:#FFF6E5;"></textarea>
+            <button onclick="submitReview()" class="btn btn-sun" style="width:100%;padding:12px;border-radius:12px;margin-top:10px;">${T('submit')}</button>
+          </div>`:''}
+        ${reviews.length===0?`<p style="text-align:center;color:var(--ink2);padding:40px;">${T('lbEmpty')}</p>`:
+          reviews.map(r=>`
+          <div class="card" style="padding:16px;margin-bottom:10px;" id="rev-${r.id}">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="font-size:1.5rem;">👤</div>
+              <div style="flex:1;"><div style="font-weight:700;">${r.name}</div>
+                <div>${starsHtml(r.rating)}</div></div>
+              <div style="font-size:.8rem;color:var(--ink2);">${new Date(r.created_at).toLocaleDateString()}</div>
+              ${isAdmin()?`<button onclick="deleteReview('${r.id}')" style="background:var(--rose);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1rem;">🗑️</button>`:''}
+            </div>
+            ${r.comment?`<p style="color:var(--ink2);margin:0;">${r.comment}</p>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`);
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:1.1rem;">⭐ ${T('reviews')}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:500px;margin:0 auto;padding:20px;">
+        ${S.user?`
+          <div class="card" style="padding:20px;margin-bottom:16px;">
+            <h3 style="font-weight:700;margin-bottom:12px;">${T('writeReview')}</h3>
+            <div style="margin-bottom:8px;">${T('yourRating')}:</div>
+            <div id="stars-select" style="font-size:2rem;margin-bottom:12px;">${starsHtml(0,true)}</div>
+            <textarea id="review-text" placeholder="${T('commentPlaceholder')}" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;min-height:80px;resize:none;outline:none;background:#FFF6E5;"></textarea>
+            <button onclick="submitReview()" class="btn btn-sun" style="width:100%;padding:12px;border-radius:12px;margin-top:10px;">${T('submit')}</button>
+          </div>`:''}
+        ${reviews.length===0?`<p style="text-align:center;color:var(--ink2);padding:40px;">${T('lbEmpty')}</p>`:
+          reviews.map(r=>`
+          <div class="card" style="padding:16px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="font-size:1.5rem;">👤</div>
+              <div><div style="font-weight:700;">${r.name}</div>
+                <div>${starsHtml(r.rating)}</div></div>
+              <div style="margin-${isAr()?'right':'left'}:auto;font-size:.8rem;color:var(--ink2);">${new Date(r.created_at).toLocaleDateString()}</div>
+            </div>
+            ${r.comment?`<p style="color:var(--ink2);margin:0;">${r.comment}</p>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`);
+
+  let selectedRating=0;
+  window.rateThis=(n)=>{
+    selectedRating=n;
+    $('stars-select').innerHTML=starsHtml(n,true);
+    // re-attach onclick
+    for(let i=1;i<=5;i++){
+      const el=$(`star-${i}`);
+      if(el)el.onclick=()=>window.rateThis(i);
+    }
+  };
+
+  window.submitReview=async()=>{
+    if(!selectedRating){alert(T('yourRating'));return;}
+    const comment=$('review-text').value.trim();
+    const{error}=await sb.from('reviews').insert({
+      user_id:S.user.id,name:S.name,rating:selectedRating,
+      comment:comment||null,lang:S.lang
+    });
+    if(!error){confetti(30);$('modal-root').innerHTML=`<div class="overlay" onclick="closeModal();go('reviews')"><div class="modal pop" style="text-align:center;"><div style="font-size:60px;">⭐</div><h2>${T('thankYou')}</h2><button onclick="closeModal();go('reviews')" class="btn btn-grass" style="padding:12px 24px;margin-top:12px;">${T('done')}</button></div></div>`;}
+  };
+
+  window.deleteReview=async(id)=>{
+    if(!isAdmin())return;
+    if(!confirm('Delete this review?'))return;
+    const{error}=await sb.from('reviews').delete().eq('id',id);
+    if(!error){
+      const el=document.getElementById('rev-'+id);
+      if(el)el.remove();
+    }
+  };
+}
+
+/* ═══════════════════════════════════════
+   FEEDBACK
+═══════════════════════════════════════ */
+async function rFeedback(){
+  // Admin view
+  if(isAdmin()){
+    const{data}=await sb.from('feedback').select('*').order('created_at',{ascending:false});
+    const msgs=data||[];
+    sh(`
+      <div style="min-height:100vh;${dir()}">
+        <div style="background:linear-gradient(135deg,#9B59B6,#8E44AD);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+          <button onclick="go('settings')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
+          <div style="flex:1;text-align:center;font-weight:700;color:white;font-size:1.1rem;">📥 ${T('feedbackInbox')} (${msgs.length})</div>
+          <div style="width:70px;"></div>
+        </div>
+        <div style="max-width:500px;margin:0 auto;padding:20px;">
+          ${msgs.length===0?`<p style="text-align:center;color:var(--ink2);padding:40px;">${T('noFeedback')}</p>`:
+            msgs.map(m=>`
+            <div class="card" style="padding:16px;margin-bottom:10px;${!m.read?'border-color:var(--sky);':''}" >
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:700;">${m.name||'Anonymous'}</span>
+                <span style="font-size:.8rem;color:var(--ink2);">${new Date(m.created_at).toLocaleDateString()}</span>
+              </div>
+              ${m.email?`<div style="font-size:.85rem;color:var(--sky2);margin-bottom:6px;">📧 ${m.email}</div>`:''}
+              <p style="color:var(--ink2);margin:0;">${m.message}</p>
+            </div>`).join('')}
+        </div>
+      </div>`);
+    return;
+  }
+
+  // User feedback form
+  sh(`
+    <div style="min-height:100vh;${dir()}">
+      <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
+        <button onclick="go('settings')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:1.1rem;">📝 ${T('feedback')}</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div style="max-width:480px;margin:0 auto;padding:20px;">
+        <div class="card" style="padding:24px;">
+          <p style="color:var(--ink2);margin-bottom:20px;">${T('feedbackSub')}</p>
+          <textarea id="fb-msg" placeholder="${T('feedbackPlaceholder')}" style="width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;min-height:120px;resize:none;outline:none;background:#FFF6E5;margin-bottom:14px;"></textarea>
+          <button onclick="sendFeedback()" class="btn btn-grass" style="width:100%;padding:14px;font-size:1rem;border-radius:14px;">${T('send')}</button>
+        </div>
+      </div>
+    </div>`);
+
+  window.sendFeedback=async()=>{
+    const msg=$('fb-msg').value.trim();
+    if(!msg)return;
+    const{error}=await sb.from('feedback').insert({
+      user_id:S.user.id,name:S.name,email:S.user?.email||null,message:msg
+    });
+    if(!error){
+      confetti(20);
+      $('modal-root').innerHTML=`<div class="overlay" onclick="closeModal();go('home')"><div class="modal pop" style="text-align:center;"><div style="font-size:60px;">🙏</div><h2>${T('thankYou')}</h2><button onclick="closeModal();go('home')" class="btn btn-grass" style="padding:12px 24px;margin-top:12px;">${T('done')}</button></div></div>`;
+    }
+  };
+}
 
 /* ═══════════════════════════════════════
    LEADERBOARD
 ═══════════════════════════════════════ */
 async function updateLeaderboard(score,total){
   if(!S.user||score<total)return;
+  const cur=await sb.from('leaderboard').select('perfect_quizzes').eq('user_id',S.user.id).single();
   await sb.from('leaderboard').upsert({
-    user_id:S.user.id,
-    name:S.name,
-    perfect_quizzes:(await getMyPerfects())+1,
+    user_id:S.user.id,name:S.name,
+    perfect_quizzes:(cur.data?.perfect_quizzes||0)+1,
     updated_at:new Date().toISOString()
   },{onConflict:'user_id'});
-}
-
-async function getMyPerfects(){
-  const{data}=await sb.from('leaderboard').select('perfect_quizzes').eq('user_id',S.user.id).single();
-  return data?.perfect_quizzes||0;
 }
 
 async function rLeaderboard(){
@@ -541,11 +738,11 @@ async function rLeaderboard(){
         <div style="width:70px;"></div>
       </div>
       <div style="max-width:500px;margin:0 auto;padding:20px;">
-        ${rows.length===0?`<div style="text-align:center;color:var(--ink2);padding:40px;">${T('lbEmpty')}</div>`:
+        ${rows.length===0?`<p style="text-align:center;color:var(--ink2);padding:40px;">${T('lbEmpty')}</p>`:
           rows.map((r,i)=>`
-          <div class="lb-row ${i<3?'card':''}" style="${i<3?'background:'+['#FFF9E6','#F5F5F5','#FFF4EE'][i]+';border:2px solid '+['#FFD700','#C0C0C0','#CD7F32'][i]+';':''}">
-            <div class="lb-rank">${medals[i]||i+1}</div>
-            <div style="flex:1;font-weight:${i<3?700:400};font-size:${i<3?'1.05':'1'}rem;">${r.name}</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;margin-bottom:8px;background:${i<3?['#FFF9E6','#F5F5F5','#FFF4EE'][i]:''};${i<3?'border:2px solid '+['#FFD700','#C0C0C0','#CD7F32'][i]:''}">
+            <div style="font-size:1.4rem;font-weight:700;min-width:32px;text-align:center;">${medals[i]||i+1}</div>
+            <div style="flex:1;font-weight:${i<3?700:400};">${r.name}</div>
             <div style="font-weight:700;color:var(--sun2);">⭐ ${r.perfect_quizzes}</div>
           </div>`).join('')}
       </div>
@@ -558,16 +755,9 @@ async function rLeaderboard(){
 function render(){
   document.body.classList.toggle('rtl',isAr());
   if(!S.name||S.step==='lang'||S.step==='name')return rWelcome();
-  if(S.step==='home')return rHome();
-  if(S.step==='abc')return rAbc();
-  if(S.step==='num')return rNum();
-  if(S.step==='vocMenu')return rVocMenu();
-  if(S.step==='voc')return rVoc();
-  if(S.step==='quiz')return rQuiz();
-  if(S.step==='reviewMenu')return rReviewMenu();
-  if(S.step==='leaderboard')return rLeaderboard();
-  if(S.step==='settings')return rSettings();
-  return rHome();
+  const routes={home:rHome,abc:rAbc,num:rNum,vocMenu:rVocMenu,voc:rVoc,quiz:rQuiz,reviewMenu:rReviewMenu,leaderboard:rLeaderboard,settings:rSettings,reviews:rReviews,feedback:rFeedback};
+  const fn=routes[S.step];
+  if(fn)fn();else rHome();
 }
 
 function go(step,params={}){
@@ -579,37 +769,70 @@ window.go=go;
    WELCOME
 ═══════════════════════════════════════ */
 function rWelcome(){
-  const cur=S.lang||'en';
+  const cur=S.lang||'ku';
   const rtl=L[cur].d==='rtl';
   document.body.classList.toggle('rtl',rtl);
+  const mainLangs=Object.keys(L).filter(k=>L[k].main);
+  const otherLangs=Object.keys(L).filter(k=>!L[k].main);
+
   $('app').innerHTML=`
     <div style="min-height:100vh;background:linear-gradient(160deg,#FFF0D0,#FFE4A0);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:20px;${rtl?'direction:rtl;font-family:Cairo,sans-serif;':''}">
       <div style="font-size:80px;animation:float 4s ease-in-out infinite;">☀️</div>
       <div style="text-align:center;">
         <div style="font-size:3rem;font-weight:700;color:var(--ink);">Roj</div>
-        <div style="color:var(--ink2);">Hînbûna Kurmancî</div>
+        <div style="color:var(--ink2);">${L[cur].appSub}</div>
       </div>
-      <div class="card" style="padding:28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px;">
+      <div class="card" style="padding:28px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:20px;">
+
+        <!-- MAIN 4 LANGUAGES -->
         <div>
-          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">🌐 ${L[cur].pick}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            ${Object.keys(L).map(k=>`
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">🌐 ${L[cur].chooseLanguage}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            ${mainLangs.map(k=>`
               <button onclick="window.selLang('${k}')" class="btn" style="padding:12px 8px;font-size:1rem;border-radius:12px;
                 background:${cur===k?'var(--sun)':'#fff'};color:${cur===k?'#fff':'var(--ink)'};
                 border:2px solid ${cur===k?'var(--sun2)':'var(--border)'};">
-                ${cur===k?'✓ ':''}${L[k].n}</button>`).join('')}
+                ${L[k].flag} ${cur===k?'✓ ':''}${L[k].n}</button>`).join('')}
+          </div>
+          <!-- MORE LANGUAGES TOGGLE -->
+          <button onclick="window.toggleMore()" style="background:none;border:2px solid var(--border);border-radius:10px;width:100%;padding:8px;font-size:.9rem;color:var(--ink2);cursor:pointer;font-family:inherit;" id="more-btn">
+            ＋ More languages
+          </button>
+          <div id="lang-more" class="lang-more" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            ${otherLangs.map(k=>`
+              <button onclick="window.selLang('${k}')" class="btn" style="padding:10px 8px;font-size:.9rem;border-radius:12px;
+                background:${cur===k?'var(--sky)':'#fff'};color:${cur===k?'#fff':'var(--ink)'};
+                border:2px solid ${cur===k?'var(--sky2)':'var(--border)'};">
+                ${L[k].flag} ${L[k].n}</button>`).join('')}
           </div>
         </div>
+
+        <!-- NAME -->
         <div>
-          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">👤 ${L[cur].name}</div>
-          <input id="ni" type="text" placeholder="${L[cur].ph}" value="${S.name||''}"
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">👤 ${L[cur].whatName}</div>
+          <input id="ni" type="text" placeholder="${L[cur].namePlaceholder}" value="${S.name||''}"
             style="width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:1.1rem;font-family:inherit;background:#FFF6E5;outline:none;">
         </div>
+
         <button onclick="window.doStart()" class="btn btn-sun" style="padding:16px;font-size:1.1rem;border-radius:14px;width:100%;">
-          ${L[cur].go} →</button>
+          ${L[cur].letsStart} →</button>
       </div>
     </div>`;
+
   window.selLang=k=>{S.lang=k;save();rWelcome();};
+  window.toggleMore=()=>{
+    const el=$('lang-more');
+    const btn=$('more-btn');
+    if(el.classList.contains('open')){el.classList.remove('open');btn.textContent='＋ More languages';}
+    else{el.classList.add('open');btn.textContent='− Less';}
+  };
+  // auto open if secondary lang selected
+  if(!L[cur].main){
+    setTimeout(()=>{
+      const el=$('lang-more');
+      if(el)el.classList.add('open');
+    },50);
+  }
   window.doStart=()=>{
     const n=$('ni').value.trim();
     if(!n){$('ni').style.borderColor='var(--rose)';$('ni').focus();return;}
@@ -639,76 +862,58 @@ function rHome(){
           </button>
         </div>
       </div>
-
       <div style="max-width:500px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
 
-        <!-- ALPHABET -->
-        <div class="card" style="padding:20px;cursor:pointer;position:relative;" onclick="go('abc')">
+        <div class="card" style="padding:20px;cursor:pointer;" onclick="go('abc')">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
             <div style="font-size:2.2rem;">🔤</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:1.1rem;">${T('letters')}</div>
-              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.abc}/${ABC.length} · ${S.isPremium?'':FREE_ABC+' free'}</div>
-            </div>
+            <div style="flex:1;"><div style="font-weight:700;font-size:1.1rem;">${T('letters')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.abc}/${ABC.length}</div></div>
             ${!S.isPremium?`<span class="badge-free">Free: ${FREE_ABC}</span>`:''}
           </div>
           <div class="bar-track" style="height:8px;"><div class="bar-fill" style="height:8px;width:${aPct}%;"></div></div>
         </div>
 
-        <!-- NUMBERS -->
         <div class="card" style="padding:20px;cursor:pointer;" onclick="go('num')">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
             <div style="font-size:2.2rem;">🔢</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:1.1rem;">${T('numbers')}</div>
-              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.num}/${NUMS.length}</div>
-            </div>
+            <div style="flex:1;"><div style="font-weight:700;font-size:1.1rem;">${T('numbers')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${S.prog.num}/${NUMS.length}</div></div>
             ${!S.isPremium?`<span class="badge-free">Free: ${FREE_NUM}</span>`:''}
           </div>
           <div class="bar-track" style="height:8px;"><div class="bar-fill" style="height:8px;width:${nPct}%;"></div></div>
         </div>
 
-        <!-- VOCAB -->
         <div class="card" style="padding:20px;cursor:pointer;" onclick="go('vocMenu')">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
             <div style="font-size:2.2rem;">📚</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:1.1rem;">${T('vocab')}</div>
-              <div style="color:var(--ink2);font-size:.85rem;">${vDone}/${UNITS.length} ${T('unit')}s</div>
-            </div>
+            <div style="flex:1;"><div style="font-weight:700;font-size:1.1rem;">${T('vocab')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${vDone}/${UNITS.length} ${T('unit')}s</div></div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-            ${UNITS.map(u=>`
-              <div style="text-align:center;font-size:1.4rem;opacity:${(S.prog.voc[u.id]||0)>=u.words.length?.4:1};position:relative;">
-                ${u.icon}${!u.free&&!S.isPremium?'<span style="position:absolute;top:-2px;right:-2px;font-size:.5rem;">🔒</span>':''}
-              </div>`).join('')}
+            ${UNITS.map(u=>`<div style="text-align:center;font-size:1.4rem;">${u.icon}${!u.free&&!S.isPremium?'<sup style="font-size:.5rem;">🔒</sup>':''}</div>`).join('')}
           </div>
         </div>
 
-        <!-- REVIEW -->
         <div class="card" style="padding:20px;cursor:pointer;" onclick="${S.isPremium?`go('reviewMenu')`:`showUpgrade()`}">
           <div style="display:flex;align-items:center;gap:12px;">
             <div style="font-size:2.2rem;">🧠</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:1.1rem;">${T('review')}</div>
-              <div style="color:var(--ink2);font-size:.85rem;">${T('reviewSub')}</div>
-            </div>
-            ${!S.isPremium?`<span style="font-size:1.2rem;">🔒</span>`:`<span style="font-size:1.4rem;color:#bbb;">›</span>`}
+            <div style="flex:1;"><div style="font-weight:700;font-size:1.1rem;">${T('review')}</div>
+              <div style="color:var(--ink2);font-size:.85rem;">${T('reviewSub')}</div></div>
+            ${!S.isPremium?`<span>🔒</span>`:`<span style="font-size:1.4rem;color:#bbb;">›</span>`}
           </div>
         </div>
 
-        <!-- LEADERBOARD -->
-        <div class="card" style="padding:20px;cursor:pointer;" onclick="go('leaderboard')">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="font-size:2.2rem;">🏆</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;font-size:1.1rem;">${T('leaderboard')}</div>
-              <div style="color:var(--ink2);font-size:.85rem;">Top perfect quiz scores</div>
-            </div>
-            <span style="font-size:1.4rem;color:#bbb;">›</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="card" style="padding:18px;cursor:pointer;text-align:center;" onclick="go('leaderboard')">
+            <div style="font-size:1.8rem;">🏆</div>
+            <div style="font-weight:700;font-size:.95rem;margin-top:4px;">${T('leaderboard')}</div>
+          </div>
+          <div class="card" style="padding:18px;cursor:pointer;text-align:center;" onclick="go('reviews')">
+            <div style="font-size:1.8rem;">⭐</div>
+            <div style="font-weight:700;font-size:.95rem;margin-top:4px;">${T('reviews')}</div>
           </div>
         </div>
-
       </div>
     </div>`);
 }
@@ -718,33 +923,27 @@ function rHome(){
 ═══════════════════════════════════════ */
 function rAbc(){
   const idx=S.abc;
-  const isLocked=!canAccess('abc')&&idx>=FREE_ABC;
-
-  if(isLocked){
-    sh(`
-      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
-        <div style="font-size:60px;margin-bottom:16px;">🔒</div>
-        <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
-        <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
-        <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
-        <button onclick="S.abc=${FREE_ABC-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
-      </div>`);
-    return;
+  const max=S.isPremium?ABC.length:FREE_ABC;
+  if(!canAccess('abc')&&idx>=FREE_ABC){
+    sh(`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+      <div style="font-size:60px;margin-bottom:16px;">🔒</div>
+      <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
+      <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
+      <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
+      <button onclick="S.abc=${FREE_ABC-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
+    </div>`);return;
   }
-
   const item=ABC[idx];
-  const ph=item.ph[S.lang]||item.ph.en;
-  const ex=item.exM[S.lang]||item.exM.en;
   sh(`
     <div style="min-height:100vh;${dir()}">
       <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
         <button onclick="go('home')" class="btn btn-white" style="padding:10px 16px;">← ${T('home')}</button>
         <div style="flex:1;text-align:center;"><div style="font-weight:700;">${T('letters')}</div>
-          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${S.isPremium?ABC.length:FREE_ABC}</div></div>
+          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${max}</div></div>
         <div style="width:70px;"></div>
       </div>
       <div style="padding:0 20px;background:linear-gradient(135deg,#FFE4A0,#FFF0D0);">
-        <div class="bar-track" style="height:8px;margin-bottom:16px;"><div class="bar-fill" style="height:8px;width:${((idx+1)/(S.isPremium?ABC.length:FREE_ABC)*100).toFixed(0)}%;"></div></div>
+        <div class="bar-track" style="height:8px;margin-bottom:16px;"><div class="bar-fill" style="height:8px;width:${((idx+1)/max*100).toFixed(0)}%;"></div></div>
       </div>
       <div style="max-width:480px;margin:0 auto;padding:20px;">
         <div class="card pop" style="padding:36px 24px;text-align:center;margin-bottom:16px;">
@@ -752,25 +951,25 @@ function rAbc(){
           <div class="letter-lower">${item.l.toLowerCase()}</div>
           <div style="background:#FFF0D8;border:2px solid #F4C88A;border-radius:16px;padding:14px 20px;margin:20px 0 8px;display:inline-block;min-width:60%;">
             <div style="font-size:.85rem;color:var(--ink2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
-            <div style="font-size:1.8rem;font-weight:700;color:var(--sun2);${isAr()?'font-family:Cairo,sans-serif;':''}">${ph}</div>
+            <div style="font-size:1.8rem;font-weight:700;color:var(--sun2);${isAr()?'font-family:Cairo,sans-serif;':''}">${item.ph[S.lang]||item.ph.en}</div>
           </div>
           <div style="background:#F0FFF4;border:2px solid #B8E8C8;border-radius:14px;padding:12px 20px;margin-top:8px;">
             <div style="font-size:.85rem;color:var(--grass2);margin-bottom:4px;">📝 ${T('example')}:</div>
             <div style="font-size:1.4rem;font-weight:700;color:var(--grass2);">${item.ex}</div>
-            <div style="color:var(--ink2);font-size:.95rem;">${ex}</div>
+            <div style="color:var(--ink2);font-size:.95rem;">${getLangTr(item.exM)}</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;justify-content:center;">
           <button onclick="abcNav(-1)" class="btn btn-nav" ${idx===0?'disabled':''} style="flex:1;max-width:140px;">← ${T('prev')}</button>
-          <div style="display:flex;align-items:center;font-size:.9rem;color:var(--ink2);">${idx+1}/${S.isPremium?ABC.length:FREE_ABC}</div>
-          <button onclick="abcNav(1)" class="btn btn-nav" ${idx>=(S.isPremium?ABC.length:FREE_ABC)-1?'disabled':''} style="flex:1;max-width:140px;">${T('next')} →</button>
+          <div style="display:flex;align-items:center;font-size:.9rem;color:var(--ink2);">${idx+1}/${max}</div>
+          <button onclick="abcNav(1)" class="btn btn-nav" ${idx>=max-1?'disabled':''} style="flex:1;max-width:140px;">${T('next')} →</button>
         </div>
-        ${!S.isPremium&&idx===FREE_ABC-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')} — See all ${ABC.length} letters</button>`:''}
+        ${!S.isPremium&&idx===FREE_ABC-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')}</button>`:''}
       </div>
     </div>`);
   window.abcNav=d=>{
-    const max=S.isPremium?ABC.length:FREE_ABC;
-    S.abc=Math.max(0,Math.min(max-1,S.abc+d));
+    const mx=S.isPremium?ABC.length:FREE_ABC;
+    S.abc=Math.max(0,Math.min(mx-1,S.abc+d));
     if(S.abc>S.prog.abc)S.prog.abc=S.abc;
     save();rAbc();
   };
@@ -783,18 +982,15 @@ function rNum(){
   const idx=S.num;
   const max=S.isPremium?NUMS.length:FREE_NUM;
   if(!canAccess('num')&&idx>=FREE_NUM){
-    sh(`
-      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
-        <div style="font-size:60px;margin-bottom:16px;">🔒</div>
-        <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
-        <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
-        <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
-        <button onclick="S.num=${FREE_NUM-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
-      </div>`);
-    return;
+    sh(`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+      <div style="font-size:60px;margin-bottom:16px;">🔒</div>
+      <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">${T('locked')}</h2>
+      <p style="color:var(--ink2);margin-bottom:28px;">${T('lockedSub')}</p>
+      <button onclick="showUpgrade()" class="btn btn-gold" style="padding:14px 28px;font-size:1.1rem;border-radius:14px;margin-bottom:12px;">${T('upgrade')}</button>
+      <button onclick="S.num=${FREE_NUM-1};save();render();" class="btn btn-white" style="padding:12px 24px;border-radius:14px;border:2px solid var(--border);">← ${T('back')}</button>
+    </div>`);return;
   }
   const item=NUMS[idx];
-  const ph=item.ph[S.lang]||item.ph.en;
   sh(`
     <div style="min-height:100vh;${dir()}">
       <div style="background:linear-gradient(135deg,#D0EEFF,#E8F6FF);padding:16px 20px;display:flex;align-items:center;gap:12px;">
@@ -814,7 +1010,7 @@ function rNum(){
           <div style="font-size:2rem;font-weight:700;margin:12px 0;">${item.ku}</div>
           <div style="background:#E8F4FF;border:2px solid #9ACAED;border-radius:16px;padding:14px 20px;display:inline-block;min-width:60%;">
             <div style="font-size:.85rem;color:var(--sky2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
-            <div style="font-size:1.8rem;font-weight:700;color:var(--sky2);${isAr()?'font-family:Cairo,sans-serif;':''}">${ph}</div>
+            <div style="font-size:1.8rem;font-weight:700;color:var(--sky2);${isAr()?'font-family:Cairo,sans-serif;':''}">${item.ph[S.lang]||item.ph.en}</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;justify-content:center;">
@@ -822,7 +1018,7 @@ function rNum(){
           <div style="display:flex;align-items:center;font-size:.9rem;color:var(--ink2);">${idx+1}/${max}</div>
           <button onclick="numNav(1)" class="btn btn-nav" ${idx>=max-1?'disabled':''} style="flex:1;max-width:140px;">${T('next')} →</button>
         </div>
-        ${!S.isPremium&&idx===FREE_NUM-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')} — See all ${NUMS.length} numbers</button>`:''}
+        ${!S.isPremium&&idx===FREE_NUM-1?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:14px;margin-top:12px;border-radius:14px;">🔓 ${T('upgrade')}</button>`:''}
       </div>
     </div>`);
   window.numNav=d=>{
@@ -834,7 +1030,7 @@ function rNum(){
 }
 
 /* ═══════════════════════════════════════
-   VOCAB MENU
+   VOCAB MENU + WORD
 ═══════════════════════════════════════ */
 function rVocMenu(){
   sh(`
@@ -849,13 +1045,12 @@ function rVocMenu(){
           const done=S.prog.voc[u.id]||0;
           const pct=Math.round(done/u.words.length*100);
           const locked=!u.free&&!S.isPremium;
-          return`
-          <div class="card" style="padding:18px;cursor:pointer;${locked?'opacity:.8':''}" onclick="${locked?`showUpgrade()`:`openUnit('${u.id}')`}">
+          return`<div class="card" style="padding:18px;cursor:pointer;" onclick="${locked?`showUpgrade()`:`openUnit('${u.id}')`}">
             <div style="display:flex;align-items:center;gap:12px;">
               <div style="font-size:2rem;">${u.icon}</div>
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                  <span style="font-weight:700;">${u.name[S.lang]||u.name.en}</span>
+                  <span style="font-weight:700;">${getLangTr(u.name)}</span>
                   ${locked?`<span style="font-size:.7rem;">🔒</span>`:u.free?`<span class="badge-free">Free</span>`:''}
                 </div>
                 <div style="color:var(--ink2);font-size:.85rem;">${done}/${u.words.length}</div>
@@ -870,9 +1065,6 @@ function rVocMenu(){
   window.openUnit=id=>{S.vocUnit=id;S.vocWord=0;S.step='voc';save();render();};
 }
 
-/* ═══════════════════════════════════════
-   VOCAB WORD
-═══════════════════════════════════════ */
 function rVoc(){
   const unit=UNITS.find(u=>u.id===S.vocUnit);
   const idx=S.vocWord;
@@ -881,10 +1073,8 @@ function rVoc(){
     <div style="min-height:100vh;${dir()}">
       <div style="background:linear-gradient(135deg,#FFE4A0,#FFF0D0);padding:16px 20px;display:flex;align-items:center;gap:12px;">
         <button onclick="go('vocMenu')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
-        <div style="flex:1;text-align:center;">
-          <div style="font-weight:700;">${unit.icon} ${unit.name[S.lang]||unit.name.en}</div>
-          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${unit.words.length}</div>
-        </div>
+        <div style="flex:1;text-align:center;"><div style="font-weight:700;">${unit.icon} ${getLangTr(unit.name)}</div>
+          <div style="font-size:.85rem;color:var(--ink2);">${idx+1}/${unit.words.length}</div></div>
         <div style="width:70px;"></div>
       </div>
       <div style="padding:0 20px;background:linear-gradient(135deg,#FFE4A0,#FFF0D0);">
@@ -894,7 +1084,7 @@ function rVoc(){
         <div class="card pop" style="padding:40px 24px;text-align:center;margin-bottom:16px;">
           <div style="font-size:72px;margin-bottom:12px;">${w.em}</div>
           <div style="font-size:2.4rem;font-weight:700;margin-bottom:6px;">${w.ku}</div>
-          <div style="font-size:1.4rem;color:var(--ink2);margin-bottom:20px;">${w.tr[S.lang]||w.tr.en}</div>
+          <div style="font-size:1.4rem;color:var(--ink2);margin-bottom:20px;">${getLangTr(w.tr)}</div>
           <div style="background:#FFF0D8;border:2px solid #F4C88A;border-radius:16px;padding:14px 20px;display:inline-block;min-width:55%;">
             <div style="font-size:.85rem;color:var(--ink2);margin-bottom:4px;">🗣️ ${T('soundLike')}:</div>
             <div style="font-size:1.7rem;font-weight:700;color:var(--sun2);${isAr()?'font-family:Cairo,sans-serif;':''}">${w.ph[S.lang]||w.ph.en}</div>
@@ -916,14 +1106,13 @@ function rVoc(){
     if(d>0&&S.vocWord===unit.words.length-1&&newIdx===unit.words.length){
       S.prog.voc[S.vocUnit]=unit.words.length;save();
       confetti(50);
-      sh(`
-        <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
-          <div style="font-size:80px;animation:float 4s ease-in-out infinite;">🎉</div>
-          <div style="font-size:2.2rem;font-weight:700;margin:16px 0;">${T('done')}</div>
-          <div style="font-size:3rem;margin:8px 0;">⭐⭐⭐</div>
-          <p style="color:var(--ink2);margin-bottom:28px;">${unit.words.length} ${T('wordOf')}s · ${unit.name[S.lang]||unit.name.en}</p>
-          <button onclick="go('vocMenu')" class="btn btn-grass" style="padding:16px 32px;font-size:1.1rem;border-radius:16px;">← ${T('back')}</button>
-        </div>`);
+      sh(`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
+        <div style="font-size:80px;animation:float 4s ease-in-out infinite;">🎉</div>
+        <div style="font-size:2.2rem;font-weight:700;margin:16px 0;">${T('done')}</div>
+        <div style="font-size:3rem;margin:8px 0;">⭐⭐⭐</div>
+        <p style="color:var(--ink2);margin-bottom:28px;">${unit.words.length} ${T('wordOf')}s · ${getLangTr(unit.name)}</p>
+        <button onclick="go('vocMenu')" class="btn btn-grass" style="padding:16px 32px;font-size:1.1rem;border-radius:16px;">← ${T('back')}</button>
+      </div>`);
       return;
     }
     save();rVoc();
@@ -931,7 +1120,7 @@ function rVoc(){
 }
 
 /* ═══════════════════════════════════════
-   REVIEW MENU
+   REVIEW MENU + QUIZ
 ═══════════════════════════════════════ */
 function rReviewMenu(){
   sh(`
@@ -944,28 +1133,25 @@ function rReviewMenu(){
       <div style="max-width:500px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:10px;">
         <div class="card" style="padding:18px;cursor:pointer;" onclick="startQuiz('abc',null)">
           <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:2rem;">🔤</div>
-            <div><div style="font-weight:700;">${T('letters')}</div><div style="color:var(--ink2);font-size:.85rem;">${ABC.length} letters</div></div>
+            <div><div style="font-weight:700;">${T('letters')}</div><div style="color:var(--ink2);font-size:.85rem;">${ABC.length}</div></div>
             <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
         </div>
         <div class="card" style="padding:18px;cursor:pointer;" onclick="startQuiz('num',null)">
           <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:2rem;">🔢</div>
-            <div><div style="font-weight:700;">${T('numbers')}</div><div style="color:var(--ink2);font-size:.85rem;">${NUMS.length} numbers</div></div>
+            <div><div style="font-weight:700;">${T('numbers')}</div><div style="color:var(--ink2);font-size:.85rem;">${NUMS.length}</div></div>
             <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
         </div>
         <div style="text-align:center;color:var(--ink2);font-size:.9rem;padding:4px 0;">📚 ${T('vocab')}</div>
         ${UNITS.map(u=>`
           <div class="card" style="padding:16px;cursor:pointer;" onclick="startQuiz('voc','${u.id}')">
             <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.8rem;">${u.icon}</div>
-              <div><div style="font-weight:700;">${u.name[S.lang]||u.name.en}</div><div style="color:var(--ink2);font-size:.85rem;">${u.words.length} ${T('wordOf')}s</div></div>
+              <div><div style="font-weight:700;">${getLangTr(u.name)}</div><div style="color:var(--ink2);font-size:.85rem;">${u.words.length} ${T('wordOf')}s</div></div>
               <div style="margin-${isAr()?'right':'left'}:auto;font-size:1.4rem;color:var(--sky);">›</div></div>
           </div>`).join('')}
       </div>
     </div>`);
 }
 
-/* ═══════════════════════════════════════
-   QUIZ
-═══════════════════════════════════════ */
 function buildQuiz(type,unitId){
   if(type==='abc'){
     return shuffle(ABC).slice(0,10).map(item=>({
@@ -981,7 +1167,7 @@ function buildQuiz(type,unitId){
   }
   const unit=UNITS.find(u=>u.id===unitId);
   return shuffle(unit.words).map(item=>({
-    q:item.tr[S.lang]||item.tr.en,qEm:item.em,correct:item.ku,
+    q:getLangTr(item.tr),qEm:item.em,correct:item.ku,
     opts:shuffle([item.ku,...shuffle(unit.words.filter(x=>x.ku!==item.ku)).slice(0,3).map(x=>x.ku)])
   }));
 }
@@ -995,12 +1181,11 @@ function rQuiz(){
   const{type,unitId,qs,cur,score}=S.quiz;
   if(cur>=qs.length)return rQuizResult();
   const q=qs[cur];
-  const backStep=type==='voc'?'reviewMenu':type==='abc'?'reviewMenu':'reviewMenu';
   const questionLabel=type==='abc'?T('qAbc'):type==='num'?T('qNum'):T('qVoc');
   sh(`
     <div style="min-height:100vh;${dir()}">
       <div style="background:linear-gradient(135deg,#E8F4FF,#D0EEFF);padding:16px 20px;display:flex;align-items:center;gap:12px;">
-        <button onclick="go('${backStep}')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
+        <button onclick="go('reviewMenu')" class="btn btn-white" style="padding:10px 16px;">← ${T('back')}</button>
         <div style="flex:1;text-align:center;font-weight:700;color:var(--sky2);">🧠 ${T('quiz')} · ${cur+1}/${qs.length}</div>
         <div style="background:#E8F4FF;border:2px solid #9ACAED;border-radius:10px;padding:6px 14px;font-weight:700;color:var(--sky2);">${score}✓</div>
       </div>
@@ -1027,21 +1212,14 @@ function rQuiz(){
   window.pickOpt=(i,chosen)=>{
     const correct=S.quiz.qs[S.quiz.cur].correct;
     const isRight=chosen===correct;
-    S.quiz.qs[S.quiz.cur].opts.forEach((_,j)=>{
-      const b=document.getElementById(`opt-${j}`);if(b)b.disabled=true;
-    });
+    S.quiz.qs[S.quiz.cur].opts.forEach((_,j)=>{const b=document.getElementById(`opt-${j}`);if(b)b.disabled=true;});
     const cb=document.getElementById(`opt-${i}`);
-    if(isRight){
-      cb.style.background='var(--grass)';cb.style.color='#fff';cb.style.borderColor='var(--grass2)';
-      S.quiz.score++;
-    } else {
+    if(isRight){cb.style.background='var(--grass)';cb.style.color='#fff';cb.style.borderColor='var(--grass2)';S.quiz.score++;}
+    else{
       cb.style.background='var(--rose)';cb.style.color='#fff';cb.style.borderColor='var(--rose2)';
-      S.quiz.qs[S.quiz.cur].opts.forEach((opt,j)=>{
-        if(opt===correct){const b=document.getElementById(`opt-${j}`);if(b){b.style.background='var(--grass)';b.style.color='#fff';b.style.borderColor='var(--grass2)';}}
-      });
+      S.quiz.qs[S.quiz.cur].opts.forEach((opt,j)=>{if(opt===correct){const b=document.getElementById(`opt-${j}`);if(b){b.style.background='var(--grass)';b.style.color='#fff';b.style.borderColor='var(--grass2)';}}});
     }
-    save();
-    setTimeout(()=>{S.quiz.cur++;save();render();},900);
+    save();setTimeout(()=>{S.quiz.cur++;save();render();},900);
   };
 }
 
@@ -1050,7 +1228,7 @@ function rQuizResult(){
   const pct=Math.round(score/qs.length*100);
   const emoji=pct===100?'🏆':pct>=70?'⭐':pct>=40?'👍':'💪';
   const isPerfect=score===qs.length;
-  if(isPerfect&&S.user){updateLeaderboard(score,qs.length);}
+  if(isPerfect&&S.user)updateLeaderboard(score,qs.length);
   confetti(isPerfect?80:20);
   sh(`
     <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;${dir()}">
@@ -1079,9 +1257,8 @@ function rSettings(){
       </div>
       <div style="max-width:480px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
 
-        <!-- NAME -->
         <div class="card" style="padding:20px;">
-          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 ${T('name')}</div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 ${T('whatName')}</div>
           <div style="display:flex;gap:10px;">
             <input id="sni" type="text" value="${S.name}" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;background:#FFF6E5;outline:none;">
             <button onclick="saveName()" class="btn btn-grass" style="padding:12px 16px;border-radius:12px;">✓</button>
@@ -1089,25 +1266,31 @@ function rSettings(){
           <div id="name-ok" style="color:var(--grass);font-size:.85rem;margin-top:6px;display:none;">✓ ${T('done')}</div>
         </div>
 
-        <!-- LANGUAGE -->
         <div class="card" style="padding:20px;">
-          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">🌐 ${T('pick')}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            ${Object.keys(L).map(k=>`
-              <button onclick="changeLang('${k}')" class="btn" style="padding:12px 8px;font-size:1rem;border-radius:12px;
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">🌐 ${T('chooseLanguage')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            ${Object.keys(L).filter(k=>L[k].main).map(k=>`
+              <button onclick="changeLang('${k}')" class="btn" style="padding:10px 8px;font-size:.95rem;border-radius:12px;
                 background:${S.lang===k?'var(--sun)':'#fff'};color:${S.lang===k?'#fff':'var(--ink)'};
                 border:2px solid ${S.lang===k?'var(--sun2)':'var(--border)'};">
-                ${S.lang===k?'✓ ':''}${L[k].n}</button>`).join('')}
+                ${L[k].flag} ${L[k].n}</button>`).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${Object.keys(L).filter(k=>!L[k].main).map(k=>`
+              <button onclick="changeLang('${k}')" class="btn" style="padding:10px 8px;font-size:.9rem;border-radius:12px;
+                background:${S.lang===k?'var(--sky)':'#fff'};color:${S.lang===k?'#fff':'var(--ink)'};
+                border:2px solid ${S.lang===k?'var(--sky2)':'var(--border)'};">
+                ${L[k].flag} ${L[k].n}</button>`).join('')}
           </div>
         </div>
 
-        <!-- ACCOUNT -->
         <div class="card" style="padding:20px;">
-          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 Account</div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;">👤 Account</div>
           ${S.user?`
             <p style="margin-bottom:10px;color:var(--ink2);">📧 ${S.user.email}</p>
-            <p style="margin-bottom:12px;">${S.isPremium?`<span class="badge-premium">⭐ Premium Active</span>`:`<span class="badge-free">Free Plan</span>`}</p>
+            <p style="margin-bottom:12px;">${S.isPremium?`<span class="badge-premium">⭐ Premium</span>`:`<span class="badge-free">Free</span>`}</p>
             ${!S.isPremium?`<button onclick="showUpgrade()" class="btn btn-gold" style="width:100%;padding:12px;border-radius:12px;margin-bottom:8px;">${T('upgrade')}</button>`:''}
+            ${isAdmin()?`<button onclick="go('feedback')" class="btn btn-purple" style="width:100%;padding:12px;border-radius:12px;margin-bottom:8px;">📥 ${T('feedbackInbox')}</button>`:''}
             <button onclick="doLogout()" class="btn btn-white" style="width:100%;padding:12px;border-radius:12px;border:2px solid var(--border);">${T('logout')}</button>
           `:`
             <button onclick="showAuth('login')" class="btn btn-sky" style="width:100%;padding:12px;border-radius:12px;margin-bottom:8px;">${T('login')}</button>
@@ -1115,9 +1298,16 @@ function rSettings(){
           `}
         </div>
 
-        <!-- ABOUT -->
+        ${S.user?`
+          <div class="card" style="padding:20px;">
+            <div style="display:flex;gap:10px;">
+              <button onclick="go('feedback')" class="btn btn-grass" style="flex:1;padding:12px;border-radius:12px;">📝 ${T('feedback')}</button>
+              <button onclick="go('reviews')" class="btn btn-sky" style="flex:1;padding:12px;border-radius:12px;">⭐ ${T('reviews')}</button>
+            </div>
+          </div>`:''}
+
         <div class="card" style="padding:20px;">
-          <div style="font-size:.85rem;font-weight:700;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;">${T('about')}</div>
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;">${T('about')}</div>
           <p style="color:var(--ink2);line-height:1.5;font-size:.95rem;">${T('aboutTxt')}</p>
         </div>
 
@@ -1133,43 +1323,34 @@ function rSettings(){
   };
   window.changeLang=k=>{S.lang=k;save();rSettings();};
   window.doReset=()=>{
-    if(confirm(T('resetQ'))){localStorage.removeItem('roj3');S={...defState};save();render();}
+    if(confirm(T('resetQ'))){localStorage.removeItem('roj4');S={...defState};save();render();}
   };
 }
 
 /* ═══════════════════════════════════════
-   HANDLE STRIPE RETURN
+   STRIPE RETURN
 ═══════════════════════════════════════ */
 function handleStripeReturn(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('success')==='true'){
     window.history.replaceState({},'','/');
-    if(S.user){
-      setTimeout(async()=>{
-        await checkPremium(S.user.id);
-        save();render();
-      },2000);
-    }
+    if(S.user)setTimeout(async()=>{await checkPremium(S.user.id);save();render();},2000);
     $('modal-root').innerHTML=`
-      <div class="overlay">
-        <div class="modal pop" style="text-align:center;">
-          <div style="font-size:60px;margin-bottom:16px;">🎉</div>
-          <h2 style="font-size:1.4rem;margin-bottom:8px;">Welcome to Premium!</h2>
-          <p style="color:var(--ink2);margin-bottom:20px;">All content is now unlocked.</p>
-          <button onclick="closeModal();render();" class="btn btn-grass" style="padding:14px 28px;font-size:1rem;border-radius:14px;">Start learning →</button>
-        </div>
-      </div>`;
+      <div class="overlay"><div class="modal pop" style="text-align:center;">
+        <div style="font-size:60px;margin-bottom:16px;">🎉</div>
+        <h2 style="font-size:1.4rem;margin-bottom:8px;">Welcome to Premium!</h2>
+        <p style="color:var(--ink2);margin-bottom:20px;">All content is now unlocked.</p>
+        <button onclick="closeModal();render();" class="btn btn-grass" style="padding:14px 28px;font-size:1rem;border-radius:14px;">Start learning →</button>
+      </div></div>`;
   }
-  if(params.get('canceled')==='true'){
-    window.history.replaceState({},'','/');
-  }
+  if(params.get('canceled')==='true')window.history.replaceState({},'','/');
 }
 
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
 handleStripeReturn();
-initAuth().then(()=>{render();});
+initAuth().then(()=>render());
 </script>
 </body>
 </html>
