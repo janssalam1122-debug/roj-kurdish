@@ -229,7 +229,15 @@ header{
       <label><span data-i18n="velocity">قوة الضغط</span>: <span id="velVal">100</span></label>
       <input type="range" id="velRange" min="1" max="127" value="100"/>
     </div>
+    <div class="field" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="chkKeepAlive" style="width:20px;height:20px;accent-color:var(--gold);"/>
+      <label for="chkKeepAlive" style="margin:0;flex:1;" data-i18n="keepAlive">إرسال التشريق تلقائياً كل 3 ثواني (مهم للكورج — حتى ما يروح التشريق عند تغيير الإيقاع)</label>
+    </div>
     <div class="help" id="helpText"></div>
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer;font-weight:800;font-size:.8rem;color:var(--gold);" data-i18n="korgGuideTitle">⚙️ إعداد أورغ الكورج (Pa) خطوة بخطوة</summary>
+      <div class="help" id="korgGuide" style="margin-top:8px;white-space:pre-line;"></div>
+    </details>
     <button class="closebtn" id="btnCloseSettings" data-i18n="close">إغلاق</button>
   </div>
 </div>
@@ -250,7 +258,16 @@ const I18N = {
     noDevice:'لا يوجد جهاز', sent:'تم الإرسال ✓', resetDone:'تمت إعادة الضبط ✓',
     noMidi:'⚠️ متصفحك لا يدعم Web MIDI. على أندرويد استخدم Chrome، وعلى آيفون استخدم تطبيق «Web MIDI Browser» من الآب ستور ثم افتح هذه الصفحة داخله.',
     noSysex:'⚠️ بدون صلاحية SysEx: الترانسبوز والفاين تون يعملان، لكن التشريق قد لا يعمل.',
-    help:'وصّل الأورغ بالهاتف عبر كبل USB OTG أو بلوتوث MIDI. فعّل استقبال SysEx و RPN في إعدادات MIDI بالأورغ (Global/MIDI). التشريق يُرسل عبر رسالة Scale Tuning القياسية (GM2) ويعمل على أغلب أورغات كورج وياماها الشرقية.',
+    help:'وصّل الأورغ بالهاتف عبر كبل USB OTG أو بلوتوث MIDI. التشريق يُرسل برسالة Scale Tuning العالمية (Universal SysEx) — نفس الرسالة يلي تستقبلها كل أورغات كورج Pa (من Pa50 حتى Pa5X) وأجهزة ياماها الشرقية، ونرسل كل صيغها مع بعض حتى يستجيب أي موديل.',
+    keepAlive:'إرسال التشريق تلقائياً كل 3 ثواني (مهم للكورج — حتى ما يروح التشريق عند تغيير الإيقاع)',
+    korgGuideTitle:'⚙️ إعداد أورغ الكورج (Pa) خطوة بخطوة',
+    korgGuide:`1. وصّل الهاتف بالأورغ: كبل USB من مدخل USB DEVICE بالأورغ إلى الهاتف (مع وصلة OTG)، أو بلوتوث MIDI إذا موجود.
+2. بالأورغ: ادخل على Global ← MIDI.
+3. اختر MIDI Preset اسمه «Tablet» أو «Master Keyboard» إذا موجود.
+4. بصفحة MIDI ← Filters: تأكد أن استقبال System Exclusive (SysEx) مو مفلتر (كل الفلاتر Off).
+5. احفظ الإعدادات: من القائمة اختر Write Global-MIDI Setup.
+6. بالتطبيق: افتح الإعدادات واختر جهاز الـ MIDI، ولما يصير الاتصال أخضر جرّب زر مقام بياتي — لازم نوتة مي تنزل ربع تون.
+7. إذا ما اشتغل التشريق: تأكد أن المتصفح أعطى صلاحية SysEx (اضغط سماح عند فتح الصفحة)، وجرّب تطلع وترجع للصفحة.`,
     notes:['دو','دو#','ري','ري#','مي','فا','فا#','صول','صول#','لا','لا#','سي'],
     presets:{rastC:'راست دو',bayatiD:'بياتي ري',sabaD:'صبا ري',sikahE:'سيكاه مي',bayatiG:'بياتي صول',rastG:'راست صول',bayatiA:'بياتي لا',ajam:'عجم (بدون تشريق)'},
     dir:'rtl', langBtn:'KU'
@@ -266,7 +283,16 @@ const I18N = {
     noDevice:'Amûr tune', sent:'Hat şandin ✓', resetDone:'Hat vegerandin ✓',
     noMidi:'⚠️ Geroka te Web MIDI destek nake. Li Android Chrome bi kar bîne; li iPhone appa «Web MIDI Browser» bi kar bîne û vê rûpelê tê de veke.',
     noSysex:'⚠️ Bêyî SysEx: transpoz û fine tune dixebitin, lê çaryek ton dibe ku nexebite.',
-    help:'Orgê bi têlefonê ve bi kabloya USB OTG an Bluetooth MIDI girêbide. Di mîhengên MIDI yên orgê de SysEx û RPN veke (Global/MIDI). Çaryek ton bi peyama standard Scale Tuning (GM2) tê şandin û li piraniya orgên Korg û Yamaha yên rojhilatî dixebite.',
+    help:'Orgê bi têlefonê ve bi kabloya USB OTG an Bluetooth MIDI girêbide. Çaryek ton bi peyama gerdûnî ya Scale Tuning (Universal SysEx) tê şandin — heman peyama ku hemû orgên Korg Pa (ji Pa50 heta Pa5X) û Yamaha yên rojhilatî distînin; em hemû formatan bi hev re dişînin da ku her model bersiv bide.',
+    keepAlive:'Çaryek ton her 3 çirkeyan bixweber bişîne (ji bo Korg girîng e — da ku bi guhertina rîtmê winda nebe)',
+    korgGuideTitle:'⚙️ Mîhenga orga Korg (Pa) gav bi gav',
+    korgGuide:`1. Têlefonê bi orgê ve girêbide: kabloya USB ji USB DEVICE ya orgê ber bi têlefonê (bi OTG), an Bluetooth MIDI heke hebe.
+2. Li orgê: biçe Global ← MIDI.
+3. MIDI Preset ya «Tablet» an «Master Keyboard» hilbijêre heke hebe.
+4. Di rûpela MIDI ← Filters de: piştrast be ku System Exclusive (SysEx) ne fîltrekirî ye (hemû fîlter Off).
+5. Mîhengan tomar bike: ji menuyê Write Global-MIDI Setup hilbijêre.
+6. Di appê de: Mîhengan veke û amûra MIDI hilbijêre; dema girêdan kesk bû, bişkoka meqamê Beyatî biceribîne — divê notaya Mî çaryek ton dakeve.
+7. Heke çaryek ton nexebitî: piştrast be ku gerokê destûra SysEx daye (dema rûpel vebû «Allow» bide), û rûpelê ji nû ve veke.`,
     notes:['Do','Do#','Rê','Rê#','Mî','Fa','Fa#','Sol','Sol#','La','La#','Sî'],
     presets:{rastC:'Rast Do',bayatiD:'Beyatî Rê',sabaD:'Seba Rê',sikahE:'Sîkah Mî',bayatiG:'Beyatî Sol',rastG:'Rast Sol',bayatiA:'Beyatî La',ajam:'Ecem (bê çaryek)'},
     dir:'ltr', langBtn:'EN'
@@ -282,7 +308,16 @@ const I18N = {
     noDevice:'No device', sent:'Sent ✓', resetDone:'Reset done ✓',
     noMidi:'⚠️ Your browser does not support Web MIDI. On Android use Chrome; on iPhone install the “Web MIDI Browser” app and open this page inside it.',
     noSysex:'⚠️ Without SysEx permission: transpose & fine tune work, but quarter-tone tuning may not.',
-    help:'Connect the keyboard to your phone with a USB OTG cable or Bluetooth MIDI. Enable SysEx and RPN reception in the keyboard MIDI settings (Global/MIDI). Quarter-tone is sent using the standard GM2 Scale Tuning message and works on most Korg / Yamaha oriental keyboards.',
+    help:'Connect the keyboard to your phone with a USB OTG cable or Bluetooth MIDI. Quarter-tone is sent with the Universal SysEx Scale Tuning message — the same message all Korg Pa keyboards (Pa50 through Pa5X) and Yamaha oriental keyboards receive; all variants are sent together so every model responds.',
+    keepAlive:'Auto-resend quarter-tone every 3 seconds (important for Korg — so tuning survives style changes)',
+    korgGuideTitle:'⚙️ Korg (Pa) setup — step by step',
+    korgGuide:`1. Connect the phone to the keyboard: USB cable from the keyboard's USB DEVICE port to the phone (with an OTG adapter), or Bluetooth MIDI if available.
+2. On the keyboard: go to Global → MIDI.
+3. Choose the «Tablet» or «Master Keyboard» MIDI preset if available.
+4. In MIDI → Filters: make sure System Exclusive (SysEx) is NOT filtered (all filters Off).
+5. Save: from the page menu choose Write Global-MIDI Setup.
+6. In the app: open Settings and pick the MIDI device; once the status is green, try the Bayati preset — the E key should drop a quarter tone.
+7. If quarter-tone doesn't work: make sure the browser was granted SysEx permission (tap Allow when the page opens), then reload the page.`,
     notes:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
     presets:{rastC:'Rast C',bayatiD:'Bayati D',sabaD:'Saba D',sikahE:'Sikah E',bayatiG:'Bayati G',rastG:'Rast G',bayatiA:'Bayati A',ajam:'Ajam (no quarter)'},
     dir:'ltr', langBtn:'ع'
@@ -305,6 +340,7 @@ const S = {
   octave: 4,
   velocity: +(localStorage.getItem('rsp.vel') || 100),
   channel: localStorage.getItem('rsp.ch') || 'all', // 'all' or '0'..'15'
+  keepAlive: localStorage.getItem('rsp.keepalive') !== '0',
   activePreset: null,
 };
 let midi = null, midiOut = null, sysexOK = false;
@@ -356,7 +392,9 @@ function refreshOutputs(){
     const saved = localStorage.getItem('rsp.out');
     const pick = outs.find(o=>o.id===saved) || outs[0];
     sel.value = pick.id;
+    const isNew = midiOut !== pick;
     midiOut = pick;
+    if(isNew) sendAll();   // push current tuning as soon as the keyboard connects
   }
   updateStatus();
 }
@@ -396,18 +434,34 @@ function sendFine(){
   });
 }
 
-/* quarter tones: GM2 Scale/Octave Tuning (1-byte, realtime + non-realtime), all channels */
+/* quarter tones: Universal SysEx Scale/Octave Tuning — the message Korg Pa
+   series (Pa50…Pa5X), Yamaha and GM2 devices receive. Send every variant
+   (1-byte + 2-byte, realtime + non-realtime) so all models respond. */
 function sendScale(){
   if(!sysexOK) return;
-  const offs = [];
+  const off1 = [], off2 = [];
   for(let pc=0; pc<12; pc++){
     const flat = S.tashreeqOn && S.qflats.has(pc);
-    offs.push(flat ? 0x40-50 : 0x40);   // 0x40 = 0 cents, 1 unit = 1 cent
+    off1.push(flat ? 0x40-50 : 0x40);            // 1-byte form: 0x40 = 0 cents, 1 unit = 1 cent
+    const v = flat ? 8192-4096 : 8192;           // 2-byte form: 8192 = 0 cents, 4096 = 50 cents
+    off2.push((v>>7)&0x7F, v&0x7F);
   }
   // channel bitmask: apply to all 16 channels
-  const head = [0x08,0x08,0x03,0x7F,0x7F];
-  send([0xF0,0x7F,0x7F,...head,...offs,0xF7]);   // realtime — affects sounding notes
-  send([0xF0,0x7E,0x7F,...head,...offs,0xF7]);   // non-realtime — for devices that only take this
+  const chMask = [0x03,0x7F,0x7F];
+  send([0xF0,0x7F,0x7F,0x08,0x08,...chMask,...off1,0xF7]); // realtime 1-byte — retunes sounding notes
+  send([0xF0,0x7E,0x7F,0x08,0x08,...chMask,...off1,0xF7]); // non-realtime 1-byte
+  send([0xF0,0x7F,0x7F,0x08,0x09,...chMask,...off2,0xF7]); // realtime 2-byte (cent precision)
+  send([0xF0,0x7E,0x7F,0x08,0x09,...chMask,...off2,0xF7]); // non-realtime 2-byte
+}
+
+/* Korg resets the scale when the player changes Style/Performance/SongBook
+   entry, so keep re-sending the current tuning while connected. */
+let keepAliveTimer = null;
+function startKeepAlive(){
+  clearInterval(keepAliveTimer);
+  keepAliveTimer = setInterval(()=>{
+    if(S.keepAlive && midiOut && sysexOK) sendScale();
+  }, 3000);
 }
 
 function sendAll(){ sendTranspose(); sendFine(); sendScale(); }
@@ -515,6 +569,7 @@ function applyLang(){
   $('btnLang').textContent = t.langBtn;
   $('kbHint').textContent = S.mode==='tune' ? t.hintTune : t.hintPlay;
   $('helpText').textContent = t.help;
+  $('korgGuide').textContent = t.korgGuide;
   // channel select
   const sc = $('selCh'); sc.innerHTML='';
   const all = document.createElement('option'); all.value='all'; all.textContent=t.allCh; sc.appendChild(all);
@@ -607,6 +662,7 @@ $('selOut').onchange=e=>{
 };
 $('selCh').onchange=e=>{ S.channel=e.target.value; localStorage.setItem('rsp.ch',S.channel); sendAll(); };
 $('velRange').oninput=e=>{ S.velocity=+e.target.value; $('velVal').textContent=S.velocity; localStorage.setItem('rsp.vel',S.velocity); };
+$('chkKeepAlive').onchange=e=>{ S.keepAlive=e.target.checked; localStorage.setItem('rsp.keepalive',S.keepAlive?'1':'0'); };
 
 /* language */
 $('btnLang').onclick=()=>{
@@ -617,7 +673,8 @@ $('btnLang').onclick=()=>{
 
 /* ================= boot ================= */
 $('velRange').value=S.velocity; $('velVal').textContent=S.velocity;
-buildOcts(); applyLang(); initMidi();
+$('chkKeepAlive').checked=S.keepAlive;
+buildOcts(); applyLang(); initMidi(); startKeepAlive();
 </script>
 </body>
 </html>
