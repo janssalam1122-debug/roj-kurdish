@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#0d0d10"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Roj Scale Pro — التحكم بالأورغ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0d10;--panel:#17171d;--panel2:#1f1f27;--border:#2c2c38;
+  --gold:#f5c518;--gold2:#d4a200;--ink:#f2ecdc;--dim:#9a94a8;
+  --green:#39d98a;--red:#ff5d5d;--blue:#4db8ff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+  overscroll-behavior:none;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+button{font-family:inherit;border:none;cursor:pointer;color:inherit;background:none;}
+
+/* ---------- header ---------- */
+header{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:linear-gradient(180deg,#1b1b22,#131318);border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.logo{font-weight:900;font-size:1.05rem;color:var(--gold);white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.logo small{color:var(--dim);font-weight:700;font-size:.7rem;}
+.spacer{flex:1;}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;
+  background:var(--panel2);border:1px solid var(--border);font-size:.75rem;font-weight:700;white-space:nowrap;
+}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green);}
+.iconbtn{
+  padding:5px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);
+  font-weight:800;font-size:.78rem;
+}
+.iconbtn:active{background:#2a2a35;}
+
+/* ---------- presets ---------- */
+.presets{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px;scrollbar-width:none;}
+.presets::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto;padding:6px 14px;border-radius:12px;font-weight:800;font-size:.82rem;
+  background:var(--panel2);border:1px solid var(--border);color:var(--ink);
+}
+.chip.active{background:var(--gold);color:#1a1400;border-color:var(--gold);}
+.chip:active{transform:scale(.96);}
+
+/* ---------- control bars ---------- */
+.controls{display:flex;gap:10px;padding:10px 12px;flex-wrap:wrap;align-items:stretch;}
+.ctl{
+  background:var(--panel);border:1px solid var(--border);border-radius:16px;
+  padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:140px;
+}
+.ctl .lbl{font-size:.72rem;color:var(--dim);font-weight:800;letter-spacing:.02em;}
+.stepper{display:flex;align-items:center;gap:10px;}
+.step{
+  width:52px;height:40px;border-radius:12px;font-size:1.5rem;font-weight:900;line-height:1;
+  background:linear-gradient(180deg,var(--gold),var(--gold2));color:#1a1400;
+  box-shadow:0 3px 0 #8a6a00;display:flex;align-items:center;justify-content:center;
+}
+.step:active{transform:translateY(2px);box-shadow:0 1px 0 #8a6a00;}
+.val{min-width:56px;text-align:center;font-size:1.25rem;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums;direction:ltr;}
+.val small{font-size:.6rem;color:var(--dim);display:block;font-weight:700;}
+.actionbtn{
+  border-radius:14px;padding:10px 16px;font-weight:900;font-size:.85rem;flex:1;min-width:120px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--border);background:var(--panel);
+}
+.actionbtn:active{transform:scale(.97);}
+.actionbtn.red{background:#3a1517;border-color:#6b2328;color:#ff9c9c;}
+.actionbtn.blue{background:#12283a;border-color:#1f4a6b;color:#8fd3ff;}
+.actionbtn.off{background:#2a2a35;color:var(--dim);}
+
+/* ---------- keyboard ---------- */
+.kb-wrap{flex:1;display:flex;flex-direction:column;padding:4px 12px 10px;min-height:0;}
+.kb-hint{text-align:center;font-size:.72rem;color:var(--dim);font-weight:700;padding-bottom:4px;}
+.kb{
+  position:relative;flex:1;min-height:150px;max-height:340px;direction:ltr;
+  background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:8px;
+}
+.kb-inner{position:relative;width:100%;height:100%;}
+.wkey{
+  position:absolute;top:0;height:100%;background:linear-gradient(180deg,#fdfdfb,#e8e6df);
+  border:1px solid #b9b5aa;border-radius:0 0 8px 8px;
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:6px;gap:2px;
+}
+.wkey.pressed{background:linear-gradient(180deg,#efe9d2,#d9cf9e);}
+.bkey{
+  position:absolute;top:0;height:58%;background:linear-gradient(180deg,#3a3a42,#17171c);
+  border:1px solid #000;border-radius:0 0 6px 6px;z-index:2;
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:5px;gap:2px;
+}
+.bkey.pressed{background:linear-gradient(180deg,#4a4a55,#26262e);}
+.wkey .nm{font-size:.68rem;font-weight:800;color:#4a4438;pointer-events:none;}
+.bkey .nm{font-size:.58rem;font-weight:800;color:#cfcadd;pointer-events:none;}
+.qbadge{
+  font-size:.6rem;font-weight:900;background:var(--gold);color:#1a1400;border-radius:6px;
+  padding:0 5px;pointer-events:none;box-shadow:0 0 8px rgba(245,197,24,.8);
+}
+.key-q.wkey{background:linear-gradient(180deg,#ffe98f,#f5c518);border-color:#b78d00;}
+.key-q.bkey{background:linear-gradient(180deg,#8a6f00,#5e4b00);border-color:#3d3000;}
+.key-q.bkey .nm{color:#ffe98f;}
+
+/* ---------- bottom bar ---------- */
+.bottom{display:flex;align-items:center;gap:8px;padding:0 12px 10px;flex-wrap:wrap;}
+.modes{display:flex;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.mode{padding:7px 16px;font-weight:800;font-size:.8rem;color:var(--dim);}
+.mode.active{background:var(--gold);color:#1a1400;}
+.octs{display:flex;gap:6px;}
+.oct{
+  width:36px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);
+  font-weight:900;font-size:.9rem;display:flex;align-items:center;justify-content:center;
+}
+.oct.active{background:var(--gold);color:#1a1400;border-color:var(--gold);}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
+.overlay.show{display:flex;}
+.modal{
+  background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:20px;
+  width:100%;max-width:420px;max-height:85vh;overflow-y:auto;
+}
+.modal h2{margin:0 0 14px;font-size:1.05rem;color:var(--gold);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.75rem;color:var(--dim);font-weight:800;margin-bottom:5px;}
+.field select,.field input[type=range]{
+  width:100%;padding:9px 10px;border-radius:10px;background:var(--panel2);
+  border:1px solid var(--border);color:var(--ink);font-family:inherit;font-weight:700;font-size:.9rem;
+}
+.help{font-size:.72rem;color:var(--dim);line-height:1.7;background:var(--panel2);border-radius:12px;padding:10px 12px;}
+.closebtn{
+  width:100%;margin-top:6px;padding:11px;border-radius:12px;font-weight:900;
+  background:linear-gradient(180deg,var(--gold),var(--gold2));color:#1a1400;font-size:.9rem;
+}
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;
+  background:#26262e;border:1px solid var(--border);color:var(--ink);
+  padding:9px 18px;border-radius:12px;font-weight:800;font-size:.8rem;
+  opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:92vw;text-overflow:ellipsis;overflow:hidden;
+}
+#toast.show{opacity:1;}
+.banner{
+  margin:8px 12px 0;padding:9px 12px;border-radius:12px;background:#3a2a12;border:1px solid #6b4a1a;
+  color:#ffd88f;font-size:.75rem;font-weight:700;line-height:1.6;display:none;
+}
+.banner.show{display:block;}
+@media (orientation:landscape) and (max-height:500px){
+  header{padding:4px 12px;}
+  .controls{padding:6px 12px;gap:8px;}
+  .ctl{padding:5px 8px;min-width:120px;}
+  .step{height:32px;width:44px;}
+  .presets{padding:6px 12px 2px;}
+  .kb{min-height:110px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎹 Roj Scale Pro <small data-i18n="subtitle">التحكم بالأورغ</small></div>
+  <div class="spacer"></div>
+  <div class="pill"><span class="dot" id="midiDot"></span><span id="midiStatus" data-i18n="notConnected">MIDI غير متصل</span></div>
+  <button class="iconbtn" id="btnSettings">⚙️ <span data-i18n="settings">الإعدادات</span></button>
+  <button class="iconbtn" id="btnLang">EN</button>
+</header>
+
+<div class="banner" id="noMidiBanner"></div>
+
+<div class="presets" id="presets"></div>
+
+<div class="controls">
+  <div class="ctl">
+    <div class="lbl" data-i18n="transpose">الترانسبوز</div>
+    <div class="stepper">
+      <button class="step" data-act="tr-">−</button>
+      <div class="val" id="trVal">0<small data-i18n="semitone">نص تون</small></div>
+      <button class="step" data-act="tr+">+</button>
+    </div>
+  </div>
+  <div class="ctl">
+    <div class="lbl" data-i18n="fineTune">فاين تون</div>
+    <div class="stepper">
+      <button class="step" data-act="ft-">−</button>
+      <div class="val" id="ftVal">0<small data-i18n="cents">سنت</small></div>
+      <button class="step" data-act="ft+">+</button>
+    </div>
+  </div>
+  <button class="actionbtn blue" id="btnReset">↺ <span data-i18n="reset">إعادة ضبط</span></button>
+  <button class="actionbtn red" id="btnTashreeq">⏻ <span id="tashreeqLbl" data-i18n="tashreeqOff">إيقاف التشريق</span></button>
+</div>
+
+<div class="kb-wrap">
+  <div class="kb-hint" id="kbHint"></div>
+  <div class="kb"><div class="kb-inner" id="kb"></div></div>
+</div>
+
+<div class="bottom">
+  <div class="modes">
+    <button class="mode active" data-mode="tune" data-i18n="modeTune">تشريق</button>
+    <button class="mode" data-mode="play" data-i18n="modePlay">عزف</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="octs" id="octs"></div>
+</div>
+
+<!-- settings modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h2 data-i18n="connSettings">إعدادات الاتصال</h2>
+    <div class="field">
+      <label data-i18n="midiOut">جهاز MIDI (الخرج)</label>
+      <select id="selOut"></select>
+    </div>
+    <div class="field">
+      <label data-i18n="channel">القناة</label>
+      <select id="selCh"></select>
+    </div>
+    <div class="field">
+      <label><span data-i18n="velocity">قوة الضغط</span>: <span id="velVal">100</span></label>
+      <input type="range" id="velRange" min="1" max="127" value="100"/>
+    </div>
+    <div class="help" id="helpText"></div>
+    <button class="closebtn" id="btnCloseSettings" data-i18n="close">إغلاق</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= i18n ================= */
+const I18N = {
+  ar: {
+    subtitle:'التحكم بالأورغ', settings:'الإعدادات', notConnected:'MIDI غير متصل', connected:'MIDI متصل',
+    transpose:'الترانسبوز', fineTune:'فاين تون', semitone:'نص تون', cents:'سنت',
+    reset:'إعادة ضبط', tashreeqOff:'إيقاف التشريق', tashreeqOn:'تشغيل التشريق',
+    modeTune:'تشريق', modePlay:'عزف',
+    hintTune:'اضغط على النوتة لتنزيلها ربع تون (-50 سنت)', hintPlay:'اعزف على البيانو — الصوت من الأورغ',
+    connSettings:'إعدادات الاتصال', midiOut:'جهاز MIDI (الخرج)', channel:'القناة', allCh:'كل القنوات',
+    velocity:'قوة الضغط', close:'إغلاق',
+    noDevice:'لا يوجد جهاز', sent:'تم الإرسال ✓', resetDone:'تمت إعادة الضبط ✓',
+    noMidi:'⚠️ متصفحك لا يدعم Web MIDI. على أندرويد استخدم Chrome، وعلى آيفون استخدم تطبيق «Web MIDI Browser» من الآب ستور ثم افتح هذه الصفحة داخله.',
+    noSysex:'⚠️ بدون صلاحية SysEx: الترانسبوز والفاين تون يعملان، لكن التشريق قد لا يعمل.',
+    help:'وصّل الأورغ بالهاتف عبر كبل USB OTG أو بلوتوث MIDI. فعّل استقبال SysEx و RPN في إعدادات MIDI بالأورغ (Global/MIDI). التشريق يُرسل عبر رسالة Scale Tuning القياسية (GM2) ويعمل على أغلب أورغات كورج وياماها الشرقية.',
+    notes:['دو','دو#','ري','ري#','مي','فا','فا#','صول','صول#','لا','لا#','سي'],
+    presets:{rastC:'راست دو',bayatiD:'بياتي ري',sabaD:'صبا ري',sikahE:'سيكاه مي',bayatiG:'بياتي صول',rastG:'راست صول',bayatiA:'بياتي لا',ajam:'عجم (بدون تشريق)'},
+    dir:'rtl', langBtn:'KU'
+  },
+  ku: {
+    subtitle:'Kontrola Orgê', settings:'Mîheng', notConnected:'MIDI ne girêdayî ye', connected:'MIDI girêdayî ye',
+    transpose:'Transpoz', fineTune:'Fine Tune', semitone:'nîv ton', cents:'cent',
+    reset:'Vegerandin', tashreeqOff:'Çaryek ton bigire', tashreeqOn:'Çaryek ton veke',
+    modeTune:'Çaryek ton', modePlay:'Lêdan',
+    hintTune:'Li notayê bide da ku çaryek ton dakeve (-50 cent)', hintPlay:'Li pianoyê bixe — deng ji orgê tê',
+    connSettings:'Mîhengên girêdanê', midiOut:'Amûra MIDI (derketin)', channel:'Kanal', allCh:'Hemû kanal',
+    velocity:'Hêza lêdanê', close:'Bigire',
+    noDevice:'Amûr tune', sent:'Hat şandin ✓', resetDone:'Hat vegerandin ✓',
+    noMidi:'⚠️ Geroka te Web MIDI destek nake. Li Android Chrome bi kar bîne; li iPhone appa «Web MIDI Browser» bi kar bîne û vê rûpelê tê de veke.',
+    noSysex:'⚠️ Bêyî SysEx: transpoz û fine tune dixebitin, lê çaryek ton dibe ku nexebite.',
+    help:'Orgê bi têlefonê ve bi kabloya USB OTG an Bluetooth MIDI girêbide. Di mîhengên MIDI yên orgê de SysEx û RPN veke (Global/MIDI). Çaryek ton bi peyama standard Scale Tuning (GM2) tê şandin û li piraniya orgên Korg û Yamaha yên rojhilatî dixebite.',
+    notes:['Do','Do#','Rê','Rê#','Mî','Fa','Fa#','Sol','Sol#','La','La#','Sî'],
+    presets:{rastC:'Rast Do',bayatiD:'Beyatî Rê',sabaD:'Seba Rê',sikahE:'Sîkah Mî',bayatiG:'Beyatî Sol',rastG:'Rast Sol',bayatiA:'Beyatî La',ajam:'Ecem (bê çaryek)'},
+    dir:'ltr', langBtn:'EN'
+  },
+  en: {
+    subtitle:'Organ Control', settings:'Settings', notConnected:'MIDI not connected', connected:'MIDI connected',
+    transpose:'Transpose', fineTune:'Fine Tune', semitone:'semitones', cents:'cents',
+    reset:'Reset', tashreeqOff:'Quarter-tone OFF', tashreeqOn:'Quarter-tone ON',
+    modeTune:'Quarter-tone', modePlay:'Play',
+    hintTune:'Tap a note to lower it a quarter tone (-50 cents)', hintPlay:'Play the piano — sound comes from your keyboard',
+    connSettings:'Connection Settings', midiOut:'MIDI Output Device', channel:'Channel', allCh:'All channels',
+    velocity:'Velocity', close:'Close',
+    noDevice:'No device', sent:'Sent ✓', resetDone:'Reset done ✓',
+    noMidi:'⚠️ Your browser does not support Web MIDI. On Android use Chrome; on iPhone install the “Web MIDI Browser” app and open this page inside it.',
+    noSysex:'⚠️ Without SysEx permission: transpose & fine tune work, but quarter-tone tuning may not.',
+    help:'Connect the keyboard to your phone with a USB OTG cable or Bluetooth MIDI. Enable SysEx and RPN reception in the keyboard MIDI settings (Global/MIDI). Quarter-tone is sent using the standard GM2 Scale Tuning message and works on most Korg / Yamaha oriental keyboards.',
+    notes:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
+    presets:{rastC:'Rast C',bayatiD:'Bayati D',sabaD:'Saba D',sikahE:'Sikah E',bayatiG:'Bayati G',rastG:'Rast G',bayatiA:'Bayati A',ajam:'Ajam (no quarter)'},
+    dir:'ltr', langBtn:'ع'
+  }
+};
+
+/* preset name -> set of pitch classes lowered by a quarter tone (0=C … 11=B) */
+const PRESETS = {
+  rastC:[4,11], bayatiD:[4], sabaD:[4], sikahE:[4,11],
+  bayatiG:[9], rastG:[6,11], bayatiA:[11], ajam:[]
+};
+
+/* ================= state ================= */
+const S = {
+  lang: localStorage.getItem('rsp.lang') || 'ar',
+  transpose: 0, fine: 0,
+  qflats: new Set(),           // pitch classes lowered -50c
+  tashreeqOn: true,
+  mode: 'tune',
+  octave: 4,
+  velocity: +(localStorage.getItem('rsp.vel') || 100),
+  channel: localStorage.getItem('rsp.ch') || 'all', // 'all' or '0'..'15'
+  activePreset: null,
+};
+let midi = null, midiOut = null, sysexOK = false;
+
+const $ = id => document.getElementById(id);
+const T = () => I18N[S.lang];
+
+/* ================= MIDI ================= */
+async function initMidi(){
+  if(!navigator.requestMIDIAccess){
+    $('noMidiBanner').textContent = T().noMidi;
+    $('noMidiBanner').classList.add('show');
+    return;
+  }
+  try{
+    midi = await navigator.requestMIDIAccess({sysex:true});
+    sysexOK = true;
+  }catch(e){
+    try{
+      midi = await navigator.requestMIDIAccess();
+      sysexOK = false;
+      $('noMidiBanner').textContent = T().noSysex;
+      $('noMidiBanner').classList.add('show');
+    }catch(e2){
+      $('noMidiBanner').textContent = T().noMidi;
+      $('noMidiBanner').classList.add('show');
+      return;
+    }
+  }
+  midi.onstatechange = refreshOutputs;
+  refreshOutputs();
+}
+
+function refreshOutputs(){
+  const sel = $('selOut');
+  const outs = midi ? [...midi.outputs.values()] : [];
+  sel.innerHTML = '';
+  if(outs.length === 0){
+    const o = document.createElement('option');
+    o.textContent = T().noDevice; o.value='';
+    sel.appendChild(o);
+    midiOut = null;
+  }else{
+    outs.forEach(out=>{
+      const o = document.createElement('option');
+      o.value = out.id; o.textContent = out.name || out.id;
+      sel.appendChild(o);
+    });
+    const saved = localStorage.getItem('rsp.out');
+    const pick = outs.find(o=>o.id===saved) || outs[0];
+    sel.value = pick.id;
+    midiOut = pick;
+  }
+  updateStatus();
+}
+
+function updateStatus(){
+  const on = !!midiOut;
+  $('midiDot').classList.toggle('on', on);
+  $('midiStatus').textContent = on ? T().connected + (midiOut.name?` · ${midiOut.name}`:'') : T().notConnected;
+}
+
+function send(bytes){ if(midiOut){ try{ midiOut.send(bytes); }catch(e){} } }
+
+function channels(){
+  return S.channel==='all' ? [...Array(16).keys()] : [ +S.channel ];
+}
+
+/* transpose: GM master coarse tune + per-channel RPN 0x0002 */
+function sendTranspose(){
+  const v = 0x40 + S.transpose;
+  if(sysexOK) send([0xF0,0x7F,0x7F,0x04,0x04,0x00,v & 0x7F,0xF7]);
+  channels().forEach(ch=>{
+    send([0xB0|ch,101,0]); send([0xB0|ch,100,2]);
+    send([0xB0|ch,6,v & 0x7F]);
+    send([0xB0|ch,101,127]); send([0xB0|ch,100,127]);
+  });
+}
+
+/* fine tune: GM master fine tune + per-channel RPN 0x0001 (±100 cents) */
+function sendFine(){
+  const raw = Math.max(0, Math.min(16383, Math.round(8192 + S.fine*8192/100)));
+  const lsb = raw & 0x7F, msb = (raw>>7) & 0x7F;
+  if(sysexOK) send([0xF0,0x7F,0x7F,0x04,0x03,lsb,msb,0xF7]);
+  channels().forEach(ch=>{
+    send([0xB0|ch,101,0]); send([0xB0|ch,100,1]);
+    send([0xB0|ch,6,msb]); send([0xB0|ch,38,lsb]);
+    send([0xB0|ch,101,127]); send([0xB0|ch,100,127]);
+  });
+}
+
+/* quarter tones: GM2 Scale/Octave Tuning (1-byte, realtime + non-realtime), all channels */
+function sendScale(){
+  if(!sysexOK) return;
+  const offs = [];
+  for(let pc=0; pc<12; pc++){
+    const flat = S.tashreeqOn && S.qflats.has(pc);
+    offs.push(flat ? 0x40-50 : 0x40);   // 0x40 = 0 cents, 1 unit = 1 cent
+  }
+  // channel bitmask: apply to all 16 channels
+  const head = [0x08,0x08,0x03,0x7F,0x7F];
+  send([0xF0,0x7F,0x7F,...head,...offs,0xF7]);   // realtime — affects sounding notes
+  send([0xF0,0x7E,0x7F,...head,...offs,0xF7]);   // non-realtime — for devices that only take this
+}
+
+function sendAll(){ sendTranspose(); sendFine(); sendScale(); }
+
+/* play notes */
+const heldKeys = new Map(); // pointerId -> note
+function noteOn(note){
+  const ch = S.channel==='all' ? 0 : +S.channel;
+  send([0x90|ch, note & 0x7F, S.velocity]);
+}
+function noteOff(note){
+  const ch = S.channel==='all' ? 0 : +S.channel;
+  send([0x80|ch, note & 0x7F, 0]);
+}
+
+/* ================= UI ================= */
+const WHITE = [0,2,4,5,7,9,11], BLACK = [1,3,6,8,10];
+const BLACK_POS = {1:0.62, 3:1.68, 6:3.60, 8:4.66, 10:5.72}; // in white-key widths
+
+function buildKeyboard(){
+  const kb = $('kb'); kb.innerHTML='';
+  const names = T().notes;
+  const ww = 100/7;
+  WHITE.forEach((pc,i)=>{
+    const k = document.createElement('div');
+    k.className='wkey'; k.dataset.pc=pc;
+    k.style.left=(i*ww)+'%'; k.style.width=`calc(${ww}% - 3px)`;
+    k.innerHTML=`<span class="qbadge" style="visibility:hidden">-50</span><span class="nm">${names[pc]}</span>`;
+    kb.appendChild(k);
+  });
+  BLACK.forEach(pc=>{
+    const k = document.createElement('div');
+    k.className='bkey'; k.dataset.pc=pc;
+    k.style.left=(BLACK_POS[pc]*ww)+'%'; k.style.width=(ww*0.62)+'%';
+    k.innerHTML=`<span class="qbadge" style="visibility:hidden">-50</span><span class="nm">${names[pc]}</span>`;
+    kb.appendChild(k);
+  });
+  refreshKeys();
+}
+
+function refreshKeys(){
+  document.querySelectorAll('#kb [data-pc]').forEach(k=>{
+    const pc = +k.dataset.pc;
+    const q = S.tashreeqOn && S.qflats.has(pc);
+    k.classList.toggle('key-q', q);
+    k.querySelector('.qbadge').style.visibility = q ? 'visible' : 'hidden';
+  });
+}
+
+function buildPresets(){
+  const box = $('presets'); box.innerHTML='';
+  Object.keys(PRESETS).forEach(key=>{
+    const b = document.createElement('button');
+    b.className='chip'; b.dataset.preset=key;
+    b.textContent = T().presets[key];
+    b.classList.toggle('active', S.activePreset===key);
+    b.onclick = ()=>{
+      S.activePreset = key;
+      S.qflats = new Set(PRESETS[key]);
+      S.tashreeqOn = true;
+      buildPresets(); refreshKeys(); refreshTashreeqBtn();
+      sendScale(); toast(T().sent);
+    };
+    box.appendChild(b);
+  });
+}
+
+function buildOcts(){
+  const box = $('octs'); box.innerHTML='';
+  [2,3,4,5,6].forEach(o=>{
+    const b = document.createElement('button');
+    b.className='oct'+(S.octave===o?' active':'');
+    b.textContent=o;
+    b.onclick=()=>{ S.octave=o; buildOcts(); };
+    box.appendChild(b);
+  });
+}
+
+function refreshVals(){
+  $('trVal').firstChild.textContent = (S.transpose>0?'+':'')+S.transpose;
+  $('ftVal').firstChild.textContent = (S.fine>0?'+':'')+S.fine;
+}
+
+function refreshTashreeqBtn(){
+  const btn = $('btnTashreeq');
+  btn.classList.toggle('off', !S.tashreeqOn);
+  btn.classList.toggle('red', S.tashreeqOn);
+  $('tashreeqLbl').textContent = S.tashreeqOn ? T().tashreeqOff : T().tashreeqOn;
+}
+
+function toast(msg){
+  const t = $('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),1400);
+}
+
+function applyLang(){
+  const t = T();
+  document.documentElement.dir = t.dir;
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k = el.dataset.i18n;
+    if(k==='tashreeqOff'||k==='tashreeqOn') return;
+    if(t[k]!==undefined) el.textContent=t[k];
+  });
+  $('btnLang').textContent = t.langBtn;
+  $('kbHint').textContent = S.mode==='tune' ? t.hintTune : t.hintPlay;
+  $('helpText').textContent = t.help;
+  // channel select
+  const sc = $('selCh'); sc.innerHTML='';
+  const all = document.createElement('option'); all.value='all'; all.textContent=t.allCh; sc.appendChild(all);
+  for(let i=0;i<16;i++){ const o=document.createElement('option'); o.value=i; o.textContent=(i+1); sc.appendChild(o); }
+  sc.value = S.channel;
+  buildKeyboard(); buildPresets(); refreshTashreeqBtn(); updateStatus(); refreshVals();
+}
+
+/* ================= events ================= */
+/* steppers with hold-repeat */
+function bindStepper(btn){
+  let timer=null, rep=null;
+  const act = btn.dataset.act;
+  const doStep = ()=>{
+    if(act==='tr+') S.transpose=Math.min(24,S.transpose+1);
+    if(act==='tr-') S.transpose=Math.max(-24,S.transpose-1);
+    if(act==='ft+') S.fine=Math.min(99,S.fine+1);
+    if(act==='ft-') S.fine=Math.max(-99,S.fine-1);
+    refreshVals();
+    if(act.startsWith('tr')) sendTranspose(); else sendFine();
+  };
+  btn.addEventListener('pointerdown',e=>{
+    e.preventDefault(); doStep();
+    timer=setTimeout(()=>{ rep=setInterval(doStep,120); },450);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>
+    btn.addEventListener(ev,()=>{ clearTimeout(timer); clearInterval(rep); }));
+}
+document.querySelectorAll('.step').forEach(bindStepper);
+
+$('btnReset').onclick = ()=>{
+  S.transpose=0; S.fine=0; S.qflats=new Set(); S.tashreeqOn=true; S.activePreset=null;
+  refreshVals(); refreshKeys(); refreshTashreeqBtn(); buildPresets();
+  sendAll(); toast(T().resetDone);
+};
+
+$('btnTashreeq').onclick = ()=>{
+  S.tashreeqOn = !S.tashreeqOn;
+  refreshTashreeqBtn(); refreshKeys();
+  sendScale(); toast(T().sent);
+};
+
+/* keyboard interaction */
+$('kb').addEventListener('pointerdown', e=>{
+  const k = e.target.closest('[data-pc]'); if(!k) return;
+  e.preventDefault();
+  const pc = +k.dataset.pc;
+  if(S.mode==='tune'){
+    if(S.qflats.has(pc)) S.qflats.delete(pc); else S.qflats.add(pc);
+    S.activePreset=null; buildPresets();
+    if(!S.tashreeqOn){ S.tashreeqOn=true; refreshTashreeqBtn(); }
+    refreshKeys(); sendScale();
+    // audible preview
+    const n=(S.octave+1)*12+pc; noteOn(n); setTimeout(()=>noteOff(n),350);
+  }else{
+    const n=(S.octave+1)*12+pc;
+    heldKeys.set(e.pointerId,n); k.classList.add('pressed');
+    k.setPointerCapture && k.setPointerCapture(e.pointerId);
+    noteOn(n);
+  }
+});
+['pointerup','pointercancel'].forEach(ev=>
+  document.addEventListener(ev, e=>{
+    const n = heldKeys.get(e.pointerId);
+    if(n!==undefined){
+      noteOff(n); heldKeys.delete(e.pointerId);
+      document.querySelectorAll('#kb .pressed').forEach(k=>{
+        if(+k.dataset.pc === ((n%12)+12)%12) k.classList.remove('pressed');
+      });
+    }
+  }));
+
+/* mode tabs */
+document.querySelectorAll('.mode').forEach(b=>{
+  b.onclick=()=>{
+    S.mode=b.dataset.mode;
+    document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('active',x===b));
+    $('kbHint').textContent = S.mode==='tune' ? T().hintTune : T().hintPlay;
+  };
+});
+
+/* settings */
+$('btnSettings').onclick=()=>$('settingsOverlay').classList.add('show');
+$('btnCloseSettings').onclick=()=>$('settingsOverlay').classList.remove('show');
+$('settingsOverlay').addEventListener('click',e=>{ if(e.target===$('settingsOverlay')) $('settingsOverlay').classList.remove('show'); });
+$('selOut').onchange=e=>{
+  const out=[...midi.outputs.values()].find(o=>o.id===e.target.value);
+  midiOut=out||null; localStorage.setItem('rsp.out',e.target.value);
+  updateStatus(); if(midiOut) sendAll();
+};
+$('selCh').onchange=e=>{ S.channel=e.target.value; localStorage.setItem('rsp.ch',S.channel); sendAll(); };
+$('velRange').oninput=e=>{ S.velocity=+e.target.value; $('velVal').textContent=S.velocity; localStorage.setItem('rsp.vel',S.velocity); };
+
+/* language */
+$('btnLang').onclick=()=>{
+  S.lang = S.lang==='ar' ? 'ku' : S.lang==='ku' ? 'en' : 'ar';
+  localStorage.setItem('rsp.lang',S.lang);
+  applyLang();
+};
+
+/* ================= boot ================= */
+$('velRange').value=S.velocity; $('velVal').textContent=S.velocity;
+buildOcts(); applyLang(); initMidi();
+</script>
+</body>
+</html>
